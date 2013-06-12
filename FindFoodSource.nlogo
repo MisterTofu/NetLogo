@@ -1,17 +1,55 @@
+breed [food]
+breed [wolves wolf]
+wolves-own [target]
+
 to setup
   clear-all
-  create-turtles 1
-  ask turtles [set color red]
+;;  ask patches [set pcolor green ]
+
+  set-default-shape wolves "wolf"
+  set-default-shape food "circle"
+  makeFood 
+  
+  create-wolves 1
+  ask wolves [ 
+    set color red 
+    set target one-of food
+    face target
+  ]
+  
+  
+  
   reset-ticks
 end
 
 to go
-  ask turtles [
-    fd 1            ;; forward 1 step
-    rt random 10    ;; turn right
-    lt random 10    ;; turn left
+   if not any? food [ 
+     makeFood 
+     ask wolves [
+       set target one-of food
+       face target
+     ]
+     ] 
+  ask wolves[
+
+  ifelse distance target < 1
+  [ move-to target
+    ask food [die]
+  ] ;; true move to target
+  [ fd 1] ;; false move towards target 
+    
   ]
+
   tick
+end
+
+to makeFood
+    create-food 1
+  ask food [
+    set color yellow
+    setxy random-xcor random-ycor
+  ]
+  
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -40,6 +78,40 @@ GRAPHICS-WINDOW
 1
 ticks
 30.0
+
+BUTTON
+134
+10
+200
+43
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+137
+55
+200
+88
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
