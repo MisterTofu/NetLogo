@@ -1,57 +1,41 @@
-breed [food]
-breed [wolves wolf]
-wolves-own [target]
+breed [prey]
+breed [predator]
+prey-own [target]
+
 
 to setup
   clear-all
- ;; ask patches [set pcolor green ]
-  display 
-  set-default-shape wolves "wolf"
-  set-default-shape food "circle"
-  makeFood 
-  
-  create-wolves 5
-  ask wolves [ 
-    set color red 
-    set target one-of food
-    face target
-    setxy random-xcor random-ycor
-  ]
- 
   reset-ticks
+  set-default-shape predator "wolf"
+  set-default-shape prey "sheep"
+  ask patches [set pcolor green - 3]
+  create-prey 5
+  create-predator 1
+
+  ask prey [
+    setxy random-xcor random-ycor
+    set size 1.2
+    set color white
+    ]
+  
+  ask predator [
+    setxy random-xcor random-ycor
+    set size 2.2
+    set color red
+    ]
 end
 
+
+
 to go
-   if not any? food [ 
-     makeFood 
-     ask wolves [
-       set target one-of food
-       face target
-     ]
-     ] 
-  ask wolves[
-
-  ifelse distance target < 1
-  [ move-to target
-    ask food [die]
-    hatch-food 1
-    ask food [ set color yellow
-      setxy random-xcor random-ycor
-    ]
-  ] ;; true move to target
-  [ fd 1] ;; false move towards target 
-    
-  ]
-
+  
+  
   tick
 end
 
-to makeFood
-    create-food 5
-  ask food [
-    set color yellow
-    setxy random-xcor random-ycor
-  ]
+
+to findPrey
+  
   
 end
 @#$#@#$#@
@@ -83,10 +67,10 @@ ticks
 30.0
 
 BUTTON
-134
-10
-200
-43
+127
+11
+193
+44
 NIL
 setup
 NIL
@@ -100,10 +84,10 @@ NIL
 1
 
 BUTTON
-137
-55
-200
-88
+127
+60
+190
+93
 NIL
 go
 T
