@@ -1,16 +1,21 @@
-breed [prey]
-breed [predator]
-prey-own [target]
+;; Prey/Predator - Very simple, one predator chases n-prey as they both wander around the field
+;; June 13 2013
 
+breed [prey aprey]
+breed [predators predator]
+predators-own [target eaten]
+
+globals[maxPrey]
 
 to setup
   clear-all
   reset-ticks
-  set-default-shape predator "wolf"
+  set maxPrey 5
+  set-default-shape predators "wolf"
   set-default-shape prey "sheep"
   ask patches [set pcolor green - 3]
   create-prey 5
-  create-predator 1
+  create-predators 1
 
   ask prey [
     setxy random-xcor random-ycor
@@ -18,7 +23,7 @@ to setup
     set color white
     ]
   
-  ask predator [
+  ask predators [
     setxy random-xcor random-ycor
     set size 2.2
     set color red
@@ -28,15 +33,48 @@ end
 
 
 to go
-  
-  
+ if not any? turtles [ stop ]
+ if count prey < maxPrey[     ;; keep a minimum amount of sheep
+   create-prey 1[
+    setxy random-xcor random-ycor
+    set size 1.2
+    set color white
+    ]
+ ]
+ 
+ ask prey[ ;; prey moves randomly
+  rt random 50
+  lt random 50
+  fd 1
+ ]
+  hunt
+
   tick
 end
 
 
-to findPrey
-  
-  
+to hunt  ;; Finds a prey to eat
+  ask predators[
+    findPrey
+    ifelse distance target < 1[
+      move-to target
+      ask target[die]
+      set eaten eaten + 1
+      show eaten
+      findPrey
+    ]
+    [ fd 1.5 ]
+  ]
+end
+
+to findPrey ;; Finds the closest prey
+    ask predators [ 
+      ; set min-n-of to get n closest
+      let nearest-neighbors min-n-of 1 other prey [ distance myself ] 
+      let nn-list sort nearest-neighbors 
+      set target first nn-list 
+      face target
+      ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -60,8 +98,8 @@ GRAPHICS-WINDOW
 16
 -16
 16
-0
-0
+1
+1
 1
 ticks
 30.0
