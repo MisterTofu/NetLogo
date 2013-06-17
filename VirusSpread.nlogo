@@ -2,7 +2,7 @@ breed [viruses virus]
 
 globals
 [
-  
+  maxViruses
 ]
 
 viruses-own
@@ -16,11 +16,13 @@ to setup
   clear-all
   reset-ticks
   setup-viruses
+  set maxViruses 50000
 end
 
 to go
-  if not any? turtles [ stop ] ;; All dead
-  kill-viruses
+  if not any? viruses [ show "No Viruses Left" stop ] ;; All dead
+  if count viruses > maxViruses [ show "Max Viruses Reached, Stopping" stop ] ;; Prevent from using up too much memory and crashing
+  kill-viruses 
   tick
 end
 
@@ -42,10 +44,9 @@ to kill-viruses
     ]
     ;; else
     [
-      hatch 5
+      hatch 2
       [
-        rt random 50
-        lt random 50
+        rt random 360
         fd random 6
       ]
     ]
@@ -73,8 +74,8 @@ GRAPHICS-WINDOW
 16
 -16
 16
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -122,7 +123,7 @@ DeathProbability
 DeathProbability
 0
 99
-10
+49
 1
 1
 %
