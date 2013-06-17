@@ -5,6 +5,8 @@ globals
 [
   maxViruses
   deaths
+  cellSize 
+  population
 ]
 
 viruses-own
@@ -20,42 +22,39 @@ patches-own [exit? inside?]
 to setup
   clear-all
   reset-ticks
+  
+  setup-vars
   ;;setup-viruses
   setup-patches
-    ;; Simple utilities
-  create-cells 1
-  [
-    let x random-xcor 
-    let y random-ycor
-    setxy x y
-    set color yellow
-    set size 2
-  ]
-  
-  set maxViruses 50000
-  set deaths 0
+
+
 end
 
 to go
-  if not any? viruses [ show "No Viruses Left" stop ] ;; All dead
-  if count viruses > maxViruses ;; Prevent from using up too much memory and crashing
-  [ 
-    show "Max Viruses Reached, Stopping" 
-    stop 
-  ] 
+  if not any? viruses [ show "No Viruses Left" stop ] ;; All dead  
+  stop-overflow
 
-  
   kill-viruses 
   tick
+end
+
+to setup-vars
+
+  set cellSize 2
+  set maxViruses 50000 ;; Use this to avoid creating too many agents
+  set deaths 0
 end
 
 to setup-patches
   ask patches
   [ 
-    set exit? false
-    set inside? (abs pycor < (.7 * max-pycor)) and (abs pxcor < (.7 * max-pxcor)) 
+    set exit? false    
+    set inside? (abs pycor < cellSize) and (abs pxcor < cellSize) ;; set a border based on cell size
   ]
-  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey] ]
+  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey] ] ;; color a the border
+  
+   ask n-of count inside inside [sprout-viruses 1] ;; Fills all spaces in the cell, note count inside is the number of turtles to spawn
+   ask viruses [ set color white ] 
 end
 
 to setup-viruses
@@ -64,18 +63,6 @@ to setup-viruses
     setxy random-xcor random-ycor
     set color red
   ]
-end
-
-to-report cellwall
-  report cells with [ wall?]
-end
-
-to-report inside 
-  report patches with [inside?] 
-end
-
-to-report exits  
-  report patches with [exit?]   
 end
 
 to kill-viruses
@@ -88,6 +75,7 @@ to kill-viruses
     ]
     ;; else
     [
+      stop-overflow
       hatch 1
       [
         set color white
@@ -97,6 +85,29 @@ to kill-viruses
     ]
   ]
 end 
+
+
+
+
+
+to-report inside 
+  report patches with [inside?] 
+end
+
+to-report exits  
+  report patches with [exit?]   
+end
+
+
+;; Prevent from using up too much memory and freezing
+;; Set global variable maxViruses to manage it
+to stop-overflow
+  if count viruses > maxViruses 
+  [ 
+    show "Max Viruses Reached, Stopping" 
+    stop 
+  ] 
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 313
