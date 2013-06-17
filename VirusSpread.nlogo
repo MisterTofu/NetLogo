@@ -1,38 +1,81 @@
 breed [viruses virus]
+breed [cells cell]
 
 globals
 [
   maxViruses
+  deaths
 ]
 
 viruses-own
 [
-  
+
 ]
 
+cells-own [ wall? ]
+
+patches-own [exit? inside?]
 
 
 to setup
   clear-all
   reset-ticks
-  setup-viruses
+  ;;setup-viruses
+  setup-patches
+    ;; Simple utilities
+  create-cells 1
+  [
+    let x random-xcor 
+    let y random-ycor
+    setxy x y
+    set color yellow
+    set size 2
+  ]
+  
   set maxViruses 50000
+  set deaths 0
 end
 
 to go
   if not any? viruses [ show "No Viruses Left" stop ] ;; All dead
-  if count viruses > maxViruses [ show "Max Viruses Reached, Stopping" stop ] ;; Prevent from using up too much memory and crashing
+  if count viruses > maxViruses ;; Prevent from using up too much memory and crashing
+  [ 
+    show "Max Viruses Reached, Stopping" 
+    stop 
+  ] 
+
+  
   kill-viruses 
   tick
 end
 
+to setup-patches
+  ask patches
+  [ 
+    set exit? false
+    set inside? (abs pycor < (.7 * max-pycor)) and (abs pxcor < (.7 * max-pxcor)) 
+  ]
+  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey] ]
+end
 
 to setup-viruses
-  create-viruses 1
+  create-viruses StartingViruses
   [
     setxy random-xcor random-ycor
-    set color white
+    set color red
   ]
+end
+
+to-report cellwall
+  report cells with [ wall?]
+end
+
+to-report inside 
+  report patches with [inside?] 
+end
+
+to-report exits  
+  report patches with [exit?]   
 end
 
 to kill-viruses
@@ -40,12 +83,14 @@ to kill-viruses
   [
     ifelse DeathProbability > random 100 
     [
+      set deaths (deaths + 1)
       die
     ]
     ;; else
     [
-      hatch 2
+      hatch 1
       [
+        set color white
         rt random 360
         fd random 6
       ]
@@ -54,13 +99,13 @@ to kill-viruses
 end 
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+313
 10
-649
-470
-16
-16
-13.0
+750
+468
+30
+30
+7.0
 1
 10
 1
@@ -70,10 +115,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--16
-16
--16
-16
+-30
+30
+-30
+30
 1
 1
 1
@@ -81,10 +126,10 @@ ticks
 30.0
 
 BUTTON
-122
-57
-188
-90
+31
+50
+97
+83
 Setup
 setup
 NIL
@@ -98,10 +143,10 @@ NIL
 1
 
 BUTTON
+30
+90
+93
 123
-105
-186
-138
 Go
 go
 T
@@ -123,11 +168,56 @@ DeathProbability
 DeathProbability
 0
 99
-49
+72
 1
 1
 %
 HORIZONTAL
+
+SLIDER
+38
+218
+210
+251
+StartingViruses
+StartingViruses
+1
+100
+7
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+111
+89
+198
+134
+Virus Count
+count viruses
+0
+1
+11
+
+PLOT
+11
+312
+287
+500
+Virus
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"Viruses" 1.0 0 -16777216 true "" "plot count viruses"
+"Deaths" 1.0 0 -8053223 true "" "plot deaths"
 
 @#$#@#$#@
 ## WHAT IS IT?
