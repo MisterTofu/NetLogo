@@ -1,3 +1,8 @@
+;; Author: Travis A. Ebesu
+;; Date: June 18th 2013
+;; Description:
+;; License: 
+
 ;; Resize to 30 by 30 and 7 patch size after, just using smaller size for development
 breed [cells cell]             ;; Note the order of breeding declarations, change which agents spawn on top
 breed [viruses virus]
@@ -8,6 +13,12 @@ globals
   maxViruses
   deaths
   cellSize 
+  cellList  ;; Contains the x,y of each cell
+  cellNum
+  
+  ;; DRY
+  cellColor
+  virusColor
 ]
 
 viruses-own
@@ -23,23 +34,43 @@ patches-own [exit? inside?]
 
 to setup
   clear-all
+  set cellNum 2
+  set cellList (list 0 0)
 
- 
- 
-   set-default-shape cells "circle"
-  ;; create a random network
-  create-cells 3 [ set color blue ]
-;  ask cells [ create-link-with one-of other cells ]
+  setup-vars
+  set-default-shape cells "circle"
+
+  create-cells 3 [ set color cellColor set size cellSize * 2]
   ;; lay it out so links are not overlapping
   repeat 500 [ layout ]
   ;; leave space around the edges
-  ask cells [ setxy 0.5 * xcor 0.5 * ycor ]
-  ;; put some "walker" turtles on the network
-  create-viruses 5 [
-    set color red
+  ask cells [ setxy round (0.5 * xcor) round (0.5 * ycor) ]
+  ;; create viruses on on cells
+  create-viruses 1 [
+    set color virusColor
     set location one-of cells
     move-to location
   ]
+  
+
+  print "==============================================="
+  print " "
+  print " "
+  print " "
+  
+  
+
+color-cells
+;  show cellList
+  
+;  
+;  let x 2 
+;  while [x < length cellList] [ 
+;    show item x cellList 
+;    show item (x + 1) cellList 
+;    set x x + 2
+;  ]
+  
      reset-ticks
 ;  setup-vars
 ;  
@@ -70,6 +101,9 @@ to go
 end
 
 to setup-vars
+  set cellColor blue
+  set virusColor red
+  
   set cellSize 2
   set maxViruses 50000 ;; Use this to avoid creating too many agents
   set deaths 0
@@ -127,9 +161,37 @@ to kill-viruses
 end 
 
 
+;; Makes a border around each cell, very messy and lazy
+;; refactor later
+to color-cells
+  let patchColor black ;; Use for debugging, set a different color to contrast 
+    foreach sort cells [ 
+    ask ? [
+      let centerx pxcor
+      let centery pycor
+      let x centerx - cellSize
+      let y centery - cellSize
+
+      while [ x < centerx + cellSize ] [
+        while [ y < centery + cellSize] [
+          ask patch x y [ set inside? true set pcolor patchColor]
+          ask patch (x + 2 * cellSize) y [ set inside? true set pcolor patchColor]
+          set y y + 1
+        ]
+       ask patch x y [ set inside? true set pcolor patchColor]
+       ask patch x (y - 2 * cellSize) [ set inside? true set pcolor patchColor]
+        set x x + 1
+      ]
+      ;; lazy, added this
+      ask patch (centerx + cellSize) (centery + cellSize) [ set inside? true set pcolor patchColor]
+    ]
+    
+ 
+  ] 
+end
 
 ;to-report insideCell
-;  report 
+;  report patches with [cells]
 ;end
 
 to-report inside 
@@ -139,6 +201,7 @@ end
 to-report exits  
   report patches with [exit?]   
 end
+
 
 
 ;; Prevent from using up too much memory and freezing
