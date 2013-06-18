@@ -9,6 +9,7 @@ patches-own [ inside? ]
 
 to setup
   ca
+  setup-patches
   reset-ticks
 end
 
@@ -19,13 +20,16 @@ end
 
 
 to setup-patches
+   ask patches [ set inside? false ] ;; init all to false
+  createContainer 0 0 2
 
-  
+  ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
 end
 
 
 ;; creates a container based on x,y and size
 ;; patches inside container hold the inside? true
+;; Needs to be refactored
 to createContainer [centerx centery containerSize]
   let x centerx - containerSize
   let y centery - containerSize
@@ -38,46 +42,27 @@ to createContainer [centerx centery containerSize]
     ]
     setPatch x y 
     setPatch x (y - 2 * containerSize) 
+    set x x + 1
   ]
-  
+  ;; Lazy to refactor, quick fix
   setPatch (centerx + containerSize) (centery + containerSize)
-  
+end
+
+;; Container helper method
+;; returns agentset of all patches inside the container
+to-report inside 
+  report patches with [inside?] 
 end
 
 
 ;; Shorthand method
 to setPatch [x y]
-  let patchColor yellow ;; color
+  let patchColor black ;; color
   ask patch x y [ 
     set inside? true 
     set pcolor patchColor
   ]
 end
-
-;;; Makes a border around each cell, very messy and lazy
-;;; refactor later
-;to color-cells
-;  let patchColor black ;; Use for debugging, set a different color to contrast 
-;    foreach sort cells [ 
-;    ask ? [
-;      let centerx pxcor
-;      let centery pycor
-;      let x centerx - cellSize
-;      let y centery - cellSize
-;
-;      while [ x < centerx + cellSize ] [
-;        while [ y < centery + cellSize] [
-;          ask patch x y [ set inside? true set pcolor patchColor]
-;          ask patch (x + 2 * cellSize) y [ set inside? true set pcolor patchColor]
-;          set y y + 1
-;        ]
-;       ask patch x y [ set inside? true set pcolor patchColor]
-;       ask patch x (y - 2 * cellSize) [ set inside? true set pcolor patchColor]
-;        set x x + 1
-;      ]
-;      ;; lazy, added this
-;      ask patch (centerx + cellSize) (centery + cellSize) [ set inside? true set pcolor patchColor]
-;    end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -105,6 +90,23 @@ GRAPHICS-WINDOW
 1
 ticks
 30.0
+
+BUTTON
+115
+75
+181
+108
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
