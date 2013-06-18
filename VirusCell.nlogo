@@ -3,33 +3,95 @@
 ;; Date: June 18th 2013
 ;; Description:
 ;; License: 
+extensions [table array]
 breed [viruses virus]
 patches-own [ inside? ]
-
+globals [ containers cellSize maxCells]
 
 to setup
   ca
+  setup-vars
   setup-patches
   reset-ticks
 end
 
 to go
-  
   tick
 end
 
+to setup-vars
+  set cellSize 2
+  set maxCells 3
+end
+ 
 
 to setup-patches
-   ask patches [ set inside? false ] ;; init all to false
-  createContainer2 0 0 2
-
+  ask patches [ set inside? false ] ;; init all to false
+  
+  show "======="
+  create-containers 3 cellSize
+  
+;  createContainer 0 0 2
+;  createContainer 8 -6 2  
+;  createContainer -8 7 2  
+  ;; Fills container
 ;  ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
+  ;; creates a border around the container
+  ask inside [ ask neighbors with [not inside?] [set pcolor grey] ]
 end
 
+to create-containers [n containerSize]
+  let partition max-pxcor * 2 / n  ;; create a partition based on n
+  show partition
+  show partition * 2
+;  createContainer partition 0 1.5
+;  createContainer (partition * 2) 0 2
+;    createContainer (partition * 3) 0 2
+    
+  let c 0
+  let x min-pxcor + random partition
+  let y random partition
+  while [ c < n ] [
+    createContainer x y containerSize
+    create-turtles 1 [ setxy x y]
+    print x
+    print y
+    print "-"
+    set c c + 1  
+    set x ( min-pxcor + c * partition) + random partition
+    set y ( min-pycor + c * partition) + random partition
+
+  ]
+end
+
+;; Random number within a range
+;; Negative numbers dont work for some reason
+to-report ran [minNum maxNum]
+  let n random maxNum
+  while [ n > maxNum or n < minNum ] [ set n random maxNum ]
+  report n
+end
+
+to create-containers2 [n containerSize]
+  let c 0
+  let partition ( 0.95 * max-pxcor) * 2 / n ;; set 95% of area to x
+  let x min-pxcor + random partition + containerSize
+  let prev random partition
+  let y random 10
+  while [ c < n ] [
+    createContainer x y containerSize
+    create-turtles 1 [ setxy x y ]
+    set c c + 1
+    ;; reset partition to remaining areas, subtract area used from total area then divide by the amount of partitons still needed
+    set partition (max-pxcor * 2 - x) / n - c 
+    set y random 10
+    set x x + random partition + (containerSize * 2)
+  ]
+end
 
 ;; creates a container where x,y as origin, and double the container size
 ;; patches inside the container hold the var inside? true
-to createContainer2 [centerx centery containerSize]
+to createContainer [centerx centery containerSize]
   let x centerx - containerSize
   let y centery + containerSize
   let maxX centerx + containerSize
@@ -46,26 +108,6 @@ to createContainer2 [centerx centery containerSize]
   ]
 end
 
-;; creates a container based on x,y and size
-;; patches inside container hold the inside? true
-;; Needs to be refactored
-to createContainer [centerx centery containerSize]
-  let x centerx - containerSize
-  let y centery - containerSize
-  
-  while [ x < centerx + containerSize ] [
-    while [ y < centery + containerSize ] [
-      setPatch x y 
-      setPatch (x + 2 * containerSize) y 
-      set y y + 1
-    ]
-    setPatch x y 
-    setPatch x (y - 2 * containerSize) 
-    set x x + 1
-  ]
-  ;; Lazy to refactor, quick fix
-  setPatch (centerx + containerSize) (centery + containerSize)
-end
 
 ;; Container helper method
 ;; returns agentset of all patches inside the container
@@ -73,6 +115,10 @@ to-report inside
   report patches with [inside?] 
 end
 
+;; Squares a number
+to-report square [n]
+  report n * n 
+end
 
 ;; Shorthand method
 to setPatch [x y]
