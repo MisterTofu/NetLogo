@@ -1,164 +1,57 @@
-;; Resize to 30 by 30 and 7 patch size after, just using smaller size for development
-breed [cells cell]             ;; Note the order of breeding declarations, change which agents spawn on top
-breed [viruses virus]
+breed [nodes node]
+breed [walkers walker]
 
-
-globals
-[
-  maxViruses
-  deaths
-  cellSize 
-]
-
-viruses-own
-[
-  mutated?
-  location
-]
-
-cells-own [ wall? ]
-
-patches-own [exit? inside?]
-
+walkers-own [location]  ;; holds a node
 
 to setup
   clear-all
-
- 
- 
-   set-default-shape cells "circle"
+  set-default-shape nodes "circle"
   ;; create a random network
-  create-cells 3 [ set color blue ]
-;  ask cells [ create-link-with one-of other cells ]
+  create-nodes 30 [ set color blue ]
+  ask nodes [ create-link-with one-of other nodes ]
   ;; lay it out so links are not overlapping
   repeat 500 [ layout ]
   ;; leave space around the edges
-  ask cells [ setxy 0.5 * xcor 0.5 * ycor ]
+  ask nodes [ setxy 0.95 * xcor 0.95 * ycor ]
   ;; put some "walker" turtles on the network
-  create-viruses 5 [
+  create-walkers 5 [
     set color red
-    set location one-of cells
+    set location one-of nodes
     move-to location
   ]
-     reset-ticks
-;  setup-vars
-;  
-;  create-cells 1 [ setxy 0 0 set color blue set size (cellSize * 2) set shape "circle" show xcor]
-;  create-viruses 5
-;  [
-;    setxy  random-xcor random-ycor
-;    set location one-of cells
-;    ;move-to location 
-;    set color red
-;  ]
-  ;;setup-patches
-;  let closest min-one-of other viruses [distance myself]
-
-end
+  reset-ticks
+end 
 
 to layout
-  layout-spring cells links 0.5 2 1
+  layout-spring nodes links 0.5 2 1
 end 
-
 
 to go
-  if not any? viruses [ show "No Viruses Left" stop ] ;; All dead  
-  stop-overflow
-
-  kill-viruses 
+  ask links [ set thickness 0 ]
+  ask walkers [
+    let new-location one-of [link-neighbors] of location
+    ;; change the thickness of the link I just crossed over
+    ask [link-with new-location] of location [ set thickness 0.5 ]
+    face new-location  ;; not strictly necessary, but improves the visuals a bit
+    move-to new-location
+    set location new-location
+  ]
   tick
-end
-
-to setup-vars
-  set cellSize 2
-  set maxViruses 50000 ;; Use this to avoid creating too many agents
-  set deaths 0
-end
-
-
-
-to setup-patches
-;;  ask patch rx ry [set pcolor red]
-  ask patches
-  [ 
-    set exit? false    
-    set inside? ((abs pycor < cellSize) and (abs pxcor < cellSize)) 
-   ;; or ((abs pycor < (ry + cellSize) and abs pycor > (ry + cellSize + 1)) and 
-   ;; (abs pxcor < (rx + cellSize) and abs pxcor > (rx + cellSize + 1))) ;; set a border based on cell size
-  ]  
-
-  
-  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey] ]
-  ;; Fills all spaces in the cell, note count inside is the number of turtles to spawn
-   ask n-of 2 inside [sprout-viruses 1] 
-   ask viruses [ set color white ] 
-end
-
-
-
-
-to setup-viruses
-  create-viruses StartingViruses
-  [
-    setxy random-xcor random-ycor
-    set color red
-  ]
-end
-
-to kill-viruses
-  ask viruses
-  [
-    ifelse DeathProbability > random 100 
-    [
-      set deaths (deaths + 1)
-      die
-    ]
-    ;; else
-    [
-      stop-overflow
-      hatch 1
-      [
-        set color white
-        rt random 360
-        fd random 6
-      ]
-    ]
-  ]
 end 
 
 
-
-;to-report insideCell
-;  report 
-;end
-
-to-report inside 
-  report patches with [inside?] 
-end
-
-to-report exits  
-  report patches with [exit?]   
-end
-
-
-;; Prevent from using up too much memory and freezing
-;; Set global variable maxViruses to manage it
-to stop-overflow
-  if count viruses > maxViruses 
-  [ 
-    show "Max Viruses Reached, Stopping" 
-    stop 
-  ] 
-end
+; Public Domain:
+; To the extent possible under law, Uri Wilensky has waived all
+; copyright and related or neighboring rights to this model.
 @#$#@#$#@
 GRAPHICS-WINDOW
-313
+210
 10
-638
-356
-10
-10
-15.0
+649
+470
+16
+16
+13.0
 1
 10
 1
@@ -168,23 +61,23 @@ GRAPHICS-WINDOW
 1
 1
 1
--10
-10
--10
-10
-1
-1
+-16
+16
+-16
+16
+0
+0
 1
 ticks
 30.0
 
 BUTTON
-31
-50
-97
-83
+91
+43
+157
+76
+NIL
 Setup
-setup
 NIL
 1
 T
@@ -196,12 +89,12 @@ NIL
 1
 
 BUTTON
-30
-90
-93
-123
-Go
-go
+92
+86
+155
+119
+NIL
+Go\n
 T
 1
 T
@@ -211,66 +104,6 @@ NIL
 NIL
 NIL
 1
-
-SLIDER
-38
-174
-210
-207
-DeathProbability
-DeathProbability
-0
-99
-72
-1
-1
-%
-HORIZONTAL
-
-SLIDER
-38
-218
-210
-251
-StartingViruses
-StartingViruses
-1
-100
-7
-1
-1
-NIL
-HORIZONTAL
-
-MONITOR
-111
-89
-198
-134
-Virus Count
-count viruses
-0
-1
-11
-
-PLOT
-11
-312
-287
-500
-Virus
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"Viruses" 1.0 0 -16777216 true "" "plot count viruses"
-"Deaths" 1.0 0 -8053223 true "" "plot deaths"
 
 @#$#@#$#@
 ## WHAT IS IT?
