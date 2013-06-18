@@ -21,11 +21,30 @@ end
 
 to setup-patches
    ask patches [ set inside? false ] ;; init all to false
-  createContainer 0 0 2
+  createContainer2 0 0 2
 
-  ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
+;  ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
 end
 
+
+;; creates a container where x,y as origin, and double the container size
+;; patches inside the container hold the var inside? true
+to createContainer2 [centerx centery containerSize]
+  let x centerx - containerSize
+  let y centery + containerSize
+  let maxX centerx + containerSize
+  let minY centery - containerSize
+  
+  ;; Loops from left to right, starting in the upper left most patch
+  while [ y > minY ] [ 
+    while [ x < maxX ] [
+      setPatch x y 
+      set x x + 1 ;; increment
+    ]
+    set x centerx - containerSize ;; reset x to start at furthest left patch
+    set y y - 1 ;; decrement
+  ]
+end
 
 ;; creates a container based on x,y and size
 ;; patches inside container hold the inside? true
@@ -57,10 +76,10 @@ end
 
 ;; Shorthand method
 to setPatch [x y]
-  let patchColor black ;; color
+;  let patchColor red ;; color
   ask patch x y [ 
     set inside? true 
-    set pcolor patchColor
+    ;set pcolor patchColor
   ]
 end
 @#$#@#$#@
