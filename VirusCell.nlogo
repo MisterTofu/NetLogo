@@ -1,220 +1,92 @@
+;; VirusCell v 1.0
 ;; Author: Travis A. Ebesu
 ;; Date: June 18th 2013
 ;; Description:
 ;; License: 
-
-;; Resize to 30 by 30 and 7 patch size after, just using smaller size for development
-breed [cells cell]             ;; Note the order of breeding declarations, change which agents spawn on top
 breed [viruses virus]
-
-
-globals
-[
-  maxViruses
-  deaths
-  cellSize 
-  cellList  ;; Contains the x,y of each cell
-  cellNum
-  
-  ;; DRY
-  cellColor
-  virusColor
-]
-
-viruses-own
-[
-  mutated?
-  location
-]
-
-cells-own [ wall? ]
-
-patches-own [exit? 
-  inside?]
-
-
-to setup-vars
-  set cellColor black
-  set virusColor red
-  
-  set cellSize 1
-  set maxViruses 50000 ;; Use this to avoid creating too many agents
-  set deaths 0
-end
-
+patches-own [ inside? ]
 
 
 to setup
-  clear-all
-  set cellNum 2
-  set cellList (list 0 0)
- 
-  setup-vars
-  set-default-shape cells "circle"
-  ask patches [ set inside? false]
-  create-cells 3 [ set color cellColor set size cellSize * 2]
-  ;; lay it out so links are not overlapping
-  repeat 500 [ layout ]
-  ;; leave space around the edges
-  ask cells [ setxy round (0.5 * xcor) round (0.5 * ycor) ]
-  ;; create viruses on on cells
-
-  
-
-  print "==============================================="
-  print " "
-  print " "
-  print " "
-  
-  
-
-  color-cells
-ask inside [ ask neighbors4 with [not inside?] [set pcolor grey] ]
-
-   create-viruses 1 [
-    set color virusColor
-    set location one-of inside
-    move-to location
-  ]
-;   ask cell 0 [ ask neighbors with [inside?] [ set pcolor green]]
-; ask inside [ ask neighbors4 with [inside?] [ set pcolor yellow]]
-     reset-ticks
+  ca
+  reset-ticks
 end
 
-to layout
-  layout-spring cells links 0.5 2 1
-end 
-
-
 to go
-  if not any? viruses [ show "No Viruses Left" stop ] ;; All dead  
-  stop-overflow
-
-  kill-viruses 
+  
   tick
 end
 
 
-
-
 to setup-patches
-;;  ask patch rx ry [set pcolor red]
-  ask patches
-  [ 
-    set exit? false    
-    set inside? ((abs pycor < cellSize) and (abs pxcor < cellSize)) 
-   ;; or ((abs pycor < (ry + cellSize) and abs pycor > (ry + cellSize + 1)) and 
-   ;; (abs pxcor < (rx + cellSize) and abs pxcor > (rx + cellSize + 1))) ;; set a border based on cell size
-  ]  
 
   
-  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey] ]
-  ;; Fills all spaces in the cell, note count inside is the number of turtles to spawn
-   ask n-of 2 inside [sprout-viruses 1] 
-   ask viruses [ set color white ] 
 end
 
 
+;; creates a container based on x,y and size
+;; patches inside container hold the inside? true
+to createContainer [centerx centery containerSize]
+  let x centerx - containerSize
+  let y centery - containerSize
+  
+  while [ x < centerx + containerSize ] [
+    while [ y < centery + containerSize ] [
+      setPatch x y 
+      setPatch (x + 2 * containerSize) y 
+      set y y + 1
+    ]
+    setPatch x y 
+    setPatch x (y - 2 * containerSize) 
+  ]
+  
+  setPatch (centerx + containerSize) (centery + containerSize)
+  
+end
 
 
-to setup-viruses
-  create-viruses StartingViruses
-  [
-    setxy random-xcor random-ycor
-    set color red
+;; Shorthand method
+to setPatch [x y]
+  let patchColor yellow ;; color
+  ask patch x y [ 
+    set inside? true 
+    set pcolor patchColor
   ]
 end
 
-to kill-viruses
-  ask viruses
-  [
-    ifelse DeathProbability > random 100 
-    [
-      set deaths (deaths + 1)
-      die
-    ]
-    ;; else
-    [
-      stop-overflow
-      hatch 1
-      [
-        set color virusColor
-        rt random 360
-        
-;            set location one-of inside
-        set location min-n-of 3 other inside [ distance myself]
-        set location sort location
-        set location item 2 location
-            move-to location
-    
-        fd random cellSize
-      ]
-    ]
-  ]
-end 
-
-
-;; Makes a border around each cell, very messy and lazy
-;; refactor later
-to color-cells
-  let patchColor black ;; Use for debugging, set a different color to contrast 
-    foreach sort cells [ 
-    ask ? [
-      let centerx pxcor
-      let centery pycor
-      let x centerx - cellSize
-      let y centery - cellSize
-
-      while [ x < centerx + cellSize ] [
-        while [ y < centery + cellSize] [
-          ask patch x y [ set inside? true set pcolor patchColor]
-          ask patch (x + 2 * cellSize) y [ set inside? true set pcolor patchColor]
-          set y y + 1
-        ]
-       ask patch x y [ set inside? true set pcolor patchColor]
-       ask patch x (y - 2 * cellSize) [ set inside? true set pcolor patchColor]
-        set x x + 1
-      ]
-      ;; lazy, added this
-      ask patch (centerx + cellSize) (centery + cellSize) [ set inside? true set pcolor patchColor]
-    ]
-  ] 
-end
-
-
-
-;to-report insideCell
-;  report patches with [cells]
-;end
-
-to-report inside 
-  report patches with [inside?] 
-end
-
-to-report exits  
-  report patches with [exit?]   
-end
-
-
-
-;; Prevent from using up too much memory and freezing
-;; Set global variable maxViruses to manage it
-to stop-overflow
-  if count viruses > maxViruses 
-  [ 
-    show "Max Viruses Reached, Stopping" 
-    stop 
-  ] 
-end
+;;; Makes a border around each cell, very messy and lazy
+;;; refactor later
+;to color-cells
+;  let patchColor black ;; Use for debugging, set a different color to contrast 
+;    foreach sort cells [ 
+;    ask ? [
+;      let centerx pxcor
+;      let centery pycor
+;      let x centerx - cellSize
+;      let y centery - cellSize
+;
+;      while [ x < centerx + cellSize ] [
+;        while [ y < centery + cellSize] [
+;          ask patch x y [ set inside? true set pcolor patchColor]
+;          ask patch (x + 2 * cellSize) y [ set inside? true set pcolor patchColor]
+;          set y y + 1
+;        ]
+;       ask patch x y [ set inside? true set pcolor patchColor]
+;       ask patch x (y - 2 * cellSize) [ set inside? true set pcolor patchColor]
+;        set x x + 1
+;      ]
+;      ;; lazy, added this
+;      ask patch (centerx + cellSize) (centery + cellSize) [ set inside? true set pcolor patchColor]
+;    end
 @#$#@#$#@
 GRAPHICS-WINDOW
-313
+210
 10
-638
-356
-10
-10
-15.0
+649
+470
+16
+16
+13.0
 1
 10
 1
@@ -224,109 +96,15 @@ GRAPHICS-WINDOW
 1
 1
 1
--10
-10
--10
-10
-1
-1
+-16
+16
+-16
+16
+0
+0
 1
 ticks
 30.0
-
-BUTTON
-31
-50
-97
-83
-Setup
-setup
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-30
-90
-93
-123
-Go
-go
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SLIDER
-38
-174
-210
-207
-DeathProbability
-DeathProbability
-0
-99
-0
-1
-1
-%
-HORIZONTAL
-
-SLIDER
-38
-218
-210
-251
-StartingViruses
-StartingViruses
-1
-100
-7
-1
-1
-NIL
-HORIZONTAL
-
-MONITOR
-111
-89
-198
-134
-Virus Count
-count viruses
-0
-1
-11
-
-PLOT
-11
-312
-287
-500
-Virus
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"Viruses" 1.0 0 -16777216 true "" "plot count viruses"
-"Deaths" 1.0 0 -8053223 true "" "plot deaths"
 
 @#$#@#$#@
 ## WHAT IS IT?
