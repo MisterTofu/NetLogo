@@ -46,7 +46,7 @@ end
 
 to create-containers [n containerSize]
   let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 is due to count 0 as a block
-  let maxN round (area / square (containerSize * 2 + 2))
+  let maxN round (area / square (containerSize * 2 + 3))
   if n > maxN  [ print "create-container => n > space avaliable " stop ]
   
   let c 0
@@ -55,47 +55,27 @@ to create-containers [n containerSize]
   let y random-ycor
   let temp (list 0 0)
   let s 0
-  let border 0.9
+  
+  ;; Adjust this percent for amount of entire board to use
+  let border 0.82
   print max-pxcor * border
   print "---"
   while [ c < n ] [
     if s > 30 [ print "stopping loops" stop ]
     set s s + 1
-
-    while [not insideBorder x y border and not xyProximity x y temp (containerSize * 2 + 2)][
+    
+    while [not insideBorder x y border or not xyProximity x y temp (containerSize * 2 + 3)][
           set x random-xcor
           set y random-ycor 
     ]
-    
-
-;      show c
-;      while [ l < length temp ] [
-;        if (abs x) > (max-pxcor * border) or (abs y) > (max-pycor * border)[
-;        ifelse (dist x y item l temp item (l + 1) temp) > (containerSize * 2 + 2) [
-;          ;        print ( word "Temp size: " length temp)
-;          print (word "X: " precision x 2 " Y: " precision y 2)
-;          print (word "Distance: " precision dist x y item l temp item (l + 1) temp 2 " ==> " precision item l temp 2 " " precision item (l + 1) temp 2)
-;          set l l + 2
-;        ][
-;        print (word "Killing XY ==>  " x ", " y)
-;        set l 2
-;        set x random-xcor
-;        set y random-ycor 
-;        ]
-;      ]
-;      ]
-;      if l = length temp [
-;        createContainer x y containerSize
-;        print (word "Creating at: " precision x 2 " " precision y 2)
-;        print ""
-;        set c c + 1
-;        ;; can a list only add one elem at a time?
-;        set temp lput x temp
-;        set temp lput y temp
-;      ]
-;      set l 2
-;    
-
+    print (word "Found => " x ", " y)
+    createContainer x y containerSize
+        set temp lput x temp
+        set temp lput y temp
+        print length temp
+      set x random-xcor
+      set y random-ycor 
+    set c c + 1
   ]
 end
 
@@ -110,9 +90,15 @@ to-report xyProximity [ x y XYlist proximity ]
   ]
   report true
 end
-
+;show insideBorder 15.560187729798038 -7.774373078196762 13.6
 to-report insideBorder [ x y border ]
-  report (abs x) < (max-pxcor * border) and (abs y) < (max-pycor * border)
+  let bx max-pxcor * border
+  let by max-pycor * border
+  set x abs x
+  set y abs y
+;  print (word "insideBorder: " bx " " by)
+  if bx > x and by > y [ report true ]
+  report false
 end
 
 ;; Random number within a range
