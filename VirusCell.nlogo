@@ -1,12 +1,13 @@
-;; VirusCell v 1.0
+;; VirusCell
 ;; Author: Travis A. Ebesu
 ;; Date: June 18th 2013
 ;; Description:
-;; License: 
-extensions [table array]
+;; Notes: Complexity Exponential
+;;        Inconsistent naming
+extensions [array table] ;; extensions for arrays and tables 
 breed [viruses virus]
-patches-own [ inside? wall?]
-globals [ containers cellSize numCells]
+patches-own [ inside? wall? num]
+globals [ containers cellSize numCells pCount cellxy]
 
 to setup
   ca
@@ -20,13 +21,16 @@ to go
 end
 
 to setup-vars
+  set pCount 0
   set cellSize 2
   set numCells 3
+  set containers [ ]
+  set cellxy [ ]
 end
- 
-
+;; Where num = container number 
+;; ask patches with [num = 2 ] [ ask neighbors4 with [inside? and not wall?] [ set pcolor yellow] ]
 to setup-patches
-  ask patches [ set inside? false set wall? false] ;; init vars to false
+  ask patches [ set inside? false set wall? false set num -1] ;; init vars to false
   
   show "======="
   print ""
@@ -36,41 +40,53 @@ to setup-patches
         
   create-containers numCells cellSize
   ;; Fills container
-;  ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
+; ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
 
-  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey set wall? true] ]
+;  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey set wall? true] ]
+    setup-viruses
 end
 
+to setup-viruses
+  
+  ;; creates a list of coordinates of all inner cells 
+  let i 0
+  let l [ ]
+  while [ i < numCells ] [
+       ask patches with [num = 1 ] [ 
+         ask neighbors4 with [inside? and not wall?] [ 
+            set l lput (list pxcor pycor) l
+         ]
+       ]
+   set cellxy lput l cellxy
+   set l [ ]
+   set i i + 1 
+  ]
+  foreach cellxy show
+end
 
 ;; Create containers and space them out evenly 
 to create-containers [n containerSize]
   let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 is due to count 0 as a block
   let maxN round (area / square (containerSize * 2 + 3))
-  if n > maxN  [ print (word "create-container => " n " > "maxN " (maximum cells for area) ") stop ]
+  if n > maxN  [ print (word "ERROR: create-container  " n " > "maxN " (maximum cells for area) ") stop ]
   let c 0
-  let l 2
   let x random-xcor
   let y random-ycor
-  let temp (list 0 0)
-;  let s 0
-  
-
   let border 0.82   ;; Adjust this percent for amount of entire board to use
-  while [ c < n ] [
-;    if s > 30 [ print "stopping loops" stop ]
-;    set s s + 1
-    
-    while [not insideBorder x y border or not xyProximity x y temp (containerSize * 2 + 3)][
+  
+  while [ c < n ] [    
+    while [not insideBorder x y border or not xyProximity x y containers (containerSize * 2 + 3)][
           set x random-xcor
           set y random-ycor 
     ]
     print (word "Container # " c " position => " x ", " y)
     createContainer x y containerSize
-    set temp lput x temp
-    set temp lput y temp
+    set containers lput x containers
+    set containers lput y containers
     set x random-xcor
     set y random-ycor 
     set c c + 1
+    set pCount pCount + 1
   ]
 end
 
@@ -81,7 +97,6 @@ to createContainer [centerx centery containerSize]
   let y centery + containerSize
   let maxX centerx + containerSize
   let minY centery - containerSize
-  
   ;; Loops from left to right, starting in the upper left most patch
   while [ y > minY ] [ 
     while [ x < maxX ] [
@@ -93,6 +108,11 @@ to createContainer [centerx centery containerSize]
   ]
 end
 
+
+to-report addXY [ add existing ]
+  if existing = [ ] [ report (list add) ]
+  report lput add existing 
+end
 
 ;; Helper/Utility Methods
 
@@ -106,10 +126,11 @@ to-report dist [x1 y1 x2 y2]
   report sqrt ( square (x2 - x1) + square (y2 - y1) )
 end
 
-;; Squares a number
+;; Squares a number, does API have this?
 to-report square [n]
   report n * n 
 end
+
 ;; Checks the xy distance from the list and makes sure its greater than proximity
 to-report xyProximity [ x y XYlist proximity ]
   let i 0
@@ -120,7 +141,7 @@ to-report xyProximity [ x y XYlist proximity ]
   report true
 end
 
-;show insideBorder 15.560187729798038 -7.774373078196762 13.6
+
 to-report insideBorder [ x y border ]
   let bx max-pxcor * border
   let by max-pycor * border
@@ -144,6 +165,7 @@ to setPatch [x y]
  ; let patchColor red ;; color
   ask patch x y [ 
     set inside? true 
+    set num pCount
   ;  set pcolor patchColor
   ]
 end
