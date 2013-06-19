@@ -41,34 +41,31 @@ to setup-patches
 end
 
 to create-containers [n containerSize]
-  let partition max-pxcor * 2 / n  ;; create a partition based on n
-  show partition
-  show partition * 2
-;  createContainer partition 0 1.5
-;  createContainer (partition * 2) 0 2
-;    createContainer (partition * 3) 0 2
-    
-  let c 0
-  let x min-pxcor + random partition
-  let y random partition
+  let c 1
+  let x random-xcor
+  let y random-ycor
+  let temp (list x y)
+  let l 0
+  createContainer x y containerSize
+  set n n - 1
   while [ c < n ] [
-    createContainer x y containerSize
-    create-turtles 1 [ setxy x y]
-    print x
-    print y
-    print "-"
-    set c c + 1  
-    set x ( min-pxcor + c * partition) + random partition
-    set y ( min-pycor + c * partition) + random partition
-
+    set x random-xcor
+    set y random-ycor 
+    while [ l < length temp] [
+      
+      ;; get distance away from all other cells
+      ;; there will be a maximum amount that can be found in a given area and create an infinite loop
+    ]
+;    random-xcor 
+    set c c + 1
   ]
 end
 
 ;; Random number within a range
-;; Negative numbers dont work for some reason
+;; Does not work with negative numbers due to random in API 
 to-report ran [minNum maxNum]
   let n random maxNum
-  while [ n > maxNum or n < minNum ] [ set n random maxNum ]
+    while [n > maxNum or n < minNum ] [ set n random maxNum ]
   report n
 end
 
@@ -115,6 +112,11 @@ to-report inside
   report patches with [inside?] 
 end
 
+;; Distance between two xy points, euclid
+to-report dist [x1 y1 x2 y2]
+  report sqrt ( square (x2 - x1) + square (y2 - y1) )
+end
+
 ;; Squares a number
 to-report square [n]
   report n * n 
@@ -122,10 +124,10 @@ end
 
 ;; Shorthand method
 to setPatch [x y]
-;  let patchColor red ;; color
+  let patchColor red ;; color
   ask patch x y [ 
     set inside? true 
-    ;set pcolor patchColor
+    set pcolor patchColor
   ]
 end
 @#$#@#$#@
