@@ -29,6 +29,10 @@ to setup-patches
   ask patches [ set inside? false ] ;; init all to false
   
   show "======="
+  print ""
+    print ""
+      print ""
+        print ""
   create-containers 3 cellSize
   
 ;  createContainer 0 0 cellSize
@@ -45,39 +49,70 @@ to create-containers [n containerSize]
   let maxN round (area / square (containerSize * 2 + 2))
   if n > maxN  [ print "create-container => n > space avaliable " stop ]
   
-  let c 1
-  let l 0
+  let c 0
+  let l 2
   let x random-xcor
   let y random-ycor
-  let temp (list x y)
-  createContainer x y containerSize
+  let temp (list 0 0)
   let s 0
+  let border 0.9
+  print max-pxcor * border
+  print "---"
   while [ c < n ] [
-    set x random-xcor
-    set y random-ycor 
-    let i 0
-    while [ l < length temp ] [
-            print dist x y item l temp item (l + 1) temp
-      ifelse dist x y item l temp item (l + 1) temp < (containerSize * 2 + 2) [
-        set l n + 1
-      ][
-        set l l + 2
-      ]
-      set i i + 1
+    if s > 30 [ print "stopping loops" stop ]
+    set s s + 1
+
+    while [not insideBorder x y border and not xyProximity x y temp (containerSize * 2 + 2)][
+          set x random-xcor
+          set y random-ycor 
     ]
     
-    if l = length temp [
-      createContainer x y containerSize
-      set c c + 1
-      ;; can a list only add one elem at a time?
-      set temp lput x temp
-      set temp lput y temp
-    ]
-    set l 0
-    ifelse s > 30 [ print " Stopping creating container " stop ]
-    [     set s s + 1 ]
+
+;      show c
+;      while [ l < length temp ] [
+;        if (abs x) > (max-pxcor * border) or (abs y) > (max-pycor * border)[
+;        ifelse (dist x y item l temp item (l + 1) temp) > (containerSize * 2 + 2) [
+;          ;        print ( word "Temp size: " length temp)
+;          print (word "X: " precision x 2 " Y: " precision y 2)
+;          print (word "Distance: " precision dist x y item l temp item (l + 1) temp 2 " ==> " precision item l temp 2 " " precision item (l + 1) temp 2)
+;          set l l + 2
+;        ][
+;        print (word "Killing XY ==>  " x ", " y)
+;        set l 2
+;        set x random-xcor
+;        set y random-ycor 
+;        ]
+;      ]
+;      ]
+;      if l = length temp [
+;        createContainer x y containerSize
+;        print (word "Creating at: " precision x 2 " " precision y 2)
+;        print ""
+;        set c c + 1
+;        ;; can a list only add one elem at a time?
+;        set temp lput x temp
+;        set temp lput y temp
+;      ]
+;      set l 2
+;    
 
   ]
+end
+
+
+
+;; Checks the xy distance from the list and makes sure its greater than proximity
+to-report xyProximity [ x y XYlist proximity ]
+  let i 0
+  while [ i < length XYlist ] [
+    if dist x y item i XYlist item (i + 1) XYlist < proximity [ report false ]
+    set i i + 2
+  ]
+  report true
+end
+
+to-report insideBorder [ x y border ]
+  report (abs x) < (max-pxcor * border) and (abs y) < (max-pycor * border)
 end
 
 ;; Random number within a range
