@@ -31,7 +31,7 @@ to setup-patches
   show "======="
   create-containers 3 cellSize
   
-;  createContainer 0 0 2
+;  createContainer 0 0 cellSize
 ;  createContainer 8 -6 2  
 ;  createContainer -8 7 2  
   ;; Fills container
@@ -41,23 +41,42 @@ to setup-patches
 end
 
 to create-containers [n containerSize]
+  let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 is due to count 0 as a block
+  let maxN round (area / square (containerSize * 2 + 2))
+  if n > maxN  [ print "create-container => n > space avaliable " stop ]
+  
   let c 1
+  let l 0
   let x random-xcor
   let y random-ycor
   let temp (list x y)
-  let l 0
   createContainer x y containerSize
-  set n n - 1
+  let s 0
   while [ c < n ] [
     set x random-xcor
     set y random-ycor 
-    while [ l < length temp] [
-      
-      ;; get distance away from all other cells
-      ;; there will be a maximum amount that can be found in a given area and create an infinite loop
+    let i 0
+    while [ l < length temp ] [
+            print dist x y item l temp item (l + 1) temp
+      ifelse dist x y item l temp item (l + 1) temp < (containerSize * 2 + 2) [
+        set l n + 1
+      ][
+        set l l + 2
+      ]
+      set i i + 1
     ]
-;    random-xcor 
-    set c c + 1
+    
+    if l = length temp [
+      createContainer x y containerSize
+      set c c + 1
+      ;; can a list only add one elem at a time?
+      set temp lput x temp
+      set temp lput y temp
+    ]
+    set l 0
+    ifelse s > 30 [ print " Stopping creating container " stop ]
+    [     set s s + 1 ]
+
   ]
 end
 
