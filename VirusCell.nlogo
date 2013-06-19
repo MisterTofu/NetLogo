@@ -8,6 +8,7 @@ extensions [array table] ;; extensions for arrays and tables
 breed [viruses virus]
 patches-own [ inside? wall? num]
 globals [ containers cellSize numCells pCount cellxy]
+viruses-own [cell]
 
 to setup
   ca
@@ -18,6 +19,7 @@ end
 
 to go
   tick
+  replicate
 end
 
 to setup-vars
@@ -42,12 +44,11 @@ to setup-patches
   ;; Fills container
 ; ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
 
-;  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey set wall? true] ]
+  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey set wall? true] ]
     setup-viruses
 end
 
 to setup-viruses
-  
   ;; creates a list of coordinates of all inner cells 
   let i 0
   let l [ ]
@@ -61,7 +62,38 @@ to setup-viruses
    set l [ ]
    set i i + 1 
   ]
-  foreach cellxy show
+  foreach cellxy show ;; Show me all my coordinates 
+  
+  ;;Create a virus in a cell
+  let r random numCells
+  let coord getRandomItem getItem r cellxy ;; gets a random coordinate within a cell
+  create-viruses 1 [ set color white set cell r setxy getItem 0 coord getItem 1 coord ]
+end
+
+to replicate
+  ask viruses [
+    ifelse random 100 < DeathProbability [
+      die
+    ][
+      hatch-viruses 1  [ 
+        let coord getRandomItem getItem cell cellxy
+        facexy getItem 0 coord getItem 1 coord
+        fd 1
+         ]
+    ]
+  ]
+end
+
+
+
+;; Retrieve an item from a list
+to-report getItem [ x l ] ;; Made to call recursively
+  report item x l 
+end
+
+;; Retrieve random item from a list
+to-report getRandomItem [ l ] ;; Made to call recursively
+  report item (random length l) l
 end
 
 ;; Create containers and space them out evenly 
@@ -213,6 +245,49 @@ NIL
 NIL
 NIL
 1
+
+BUTTON
+116
+121
+179
+154
+go
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+21
+176
+193
+209
+DeathProbability
+DeathProbability
+0
+100
+20
+1
+1
+%
+HORIZONTAL
+
+MONITOR
+131
+248
+188
+293
+# Virus
+count viruses
+0
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
