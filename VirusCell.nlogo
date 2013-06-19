@@ -5,8 +5,8 @@
 ;; License: 
 extensions [table array]
 breed [viruses virus]
-patches-own [ inside? ]
-globals [ containers cellSize maxCells]
+patches-own [ inside? wall?]
+globals [ containers cellSize numCells]
 
 to setup
   ca
@@ -21,108 +21,56 @@ end
 
 to setup-vars
   set cellSize 2
-  set maxCells 3
+  set numCells 3
 end
  
 
 to setup-patches
-  ask patches [ set inside? false ] ;; init all to false
+  ask patches [ set inside? false set wall? false] ;; init vars to false
   
   show "======="
   print ""
     print ""
       print ""
         print ""
-  create-containers 3 cellSize
-  
-;  createContainer 0 0 cellSize
-;  createContainer 8 -6 2  
-;  createContainer -8 7 2  
+        
+  create-containers numCells cellSize
   ;; Fills container
 ;  ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
-  ;; creates a border around the container
-  ask inside [ ask neighbors with [not inside?] [set pcolor grey] ]
+
+  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey set wall? true] ]
 end
 
+
+;; Create containers and space them out evenly 
 to create-containers [n containerSize]
   let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 is due to count 0 as a block
   let maxN round (area / square (containerSize * 2 + 3))
-  if n > maxN  [ print "create-container => n > space avaliable " stop ]
-  
+  if n > maxN  [ print (word "create-container => " n " > "maxN " (maximum cells for area) ") stop ]
   let c 0
   let l 2
   let x random-xcor
   let y random-ycor
   let temp (list 0 0)
-  let s 0
+;  let s 0
   
-  ;; Adjust this percent for amount of entire board to use
-  let border 0.82
-  print max-pxcor * border
-  print "---"
+
+  let border 0.82   ;; Adjust this percent for amount of entire board to use
   while [ c < n ] [
-    if s > 30 [ print "stopping loops" stop ]
-    set s s + 1
+;    if s > 30 [ print "stopping loops" stop ]
+;    set s s + 1
     
     while [not insideBorder x y border or not xyProximity x y temp (containerSize * 2 + 3)][
           set x random-xcor
           set y random-ycor 
     ]
-    print (word "Found => " x ", " y)
+    print (word "Container # " c " position => " x ", " y)
     createContainer x y containerSize
-        set temp lput x temp
-        set temp lput y temp
-        print length temp
-      set x random-xcor
-      set y random-ycor 
+    set temp lput x temp
+    set temp lput y temp
+    set x random-xcor
+    set y random-ycor 
     set c c + 1
-  ]
-end
-
-
-
-;; Checks the xy distance from the list and makes sure its greater than proximity
-to-report xyProximity [ x y XYlist proximity ]
-  let i 0
-  while [ i < length XYlist ] [
-    if dist x y item i XYlist item (i + 1) XYlist < proximity [ report false ]
-    set i i + 2
-  ]
-  report true
-end
-;show insideBorder 15.560187729798038 -7.774373078196762 13.6
-to-report insideBorder [ x y border ]
-  let bx max-pxcor * border
-  let by max-pycor * border
-  set x abs x
-  set y abs y
-;  print (word "insideBorder: " bx " " by)
-  if bx > x and by > y [ report true ]
-  report false
-end
-
-;; Random number within a range
-;; Does not work with negative numbers due to random in API 
-to-report ran [minNum maxNum]
-  let n random maxNum
-    while [n > maxNum or n < minNum ] [ set n random maxNum ]
-  report n
-end
-
-to create-containers2 [n containerSize]
-  let c 0
-  let partition ( 0.95 * max-pxcor) * 2 / n ;; set 95% of area to x
-  let x min-pxcor + random partition + containerSize
-  let prev random partition
-  let y random 10
-  while [ c < n ] [
-    createContainer x y containerSize
-    create-turtles 1 [ setxy x y ]
-    set c c + 1
-    ;; reset partition to remaining areas, subtract area used from total area then divide by the amount of partitons still needed
-    set partition (max-pxcor * 2 - x) / n - c 
-    set y random 10
-    set x x + random partition + (containerSize * 2)
   ]
 end
 
@@ -146,7 +94,8 @@ to createContainer [centerx centery containerSize]
 end
 
 
-;; Container helper method
+;; Helper/Utility Methods
+
 ;; returns agentset of all patches inside the container
 to-report inside 
   report patches with [inside?] 
@@ -161,13 +110,41 @@ end
 to-report square [n]
   report n * n 
 end
+;; Checks the xy distance from the list and makes sure its greater than proximity
+to-report xyProximity [ x y XYlist proximity ]
+  let i 0
+  while [ i < length XYlist ] [
+    if dist x y item i XYlist item (i + 1) XYlist < proximity [ report false ]
+    set i i + 2
+  ]
+  report true
+end
+
+;show insideBorder 15.560187729798038 -7.774373078196762 13.6
+to-report insideBorder [ x y border ]
+  let bx max-pxcor * border
+  let by max-pycor * border
+  set x abs x
+  set y abs y
+  if bx > x and by > y [ report true ]
+  report false
+end
+
+;; Random number within a range
+;; Does not work with negative numbers due to random in API 
+to-report ran [minNum maxNum]
+  let n random maxNum
+    while [n > maxNum or n < minNum ] [ set n random maxNum ]
+  report n
+end
+
 
 ;; Shorthand method
 to setPatch [x y]
-  let patchColor red ;; color
+ ; let patchColor red ;; color
   ask patch x y [ 
     set inside? true 
-    set pcolor patchColor
+  ;  set pcolor patchColor
   ]
 end
 @#$#@#$#@
@@ -185,8 +162,8 @@ GRAPHICS-WINDOW
 1
 1
 0
-1
-1
+0
+0
 1
 -16
 16
