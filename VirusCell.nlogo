@@ -14,7 +14,8 @@
 
 extensions [array table] ;; extensions for arrays and tables 
 globals [ 
-  cells ; List of original coordinates picked for cells
+  OriginalCells ; List of original coordinates picked for cells
+  cells
   CellSize ; size to make cells ( size * 2 + 1)
   numCells ; number of cells to make
   pCount ;; keeps track of cell numbers to label them properly
@@ -46,8 +47,11 @@ to setup
 end
 
 to go
+;    replicate
+
+  infect-cell
   tick
-  replicate
+
 end
 
 ;; Initialize global variables
@@ -55,6 +59,7 @@ to setup-vars
   set pCount 0
   set CellSize 2
   set numCells 4
+  set OriginalCells [ ]
   set cells [ ]
   set cellxy [ ]
 end
@@ -122,8 +127,47 @@ to replicate
 end
 
 to infect-cell
-  ask patches with [wall?] [ ask neighbors4 with [not inside? and not wall?] [ set pcolor yellow] ]
+
+  ask viruses [
+      let i 0
+;      while [ i < length cells ] [
+;          
+;      ]
+  ]
+  ; exit cell
+  ; find closest cell
+  ; move towards
+  ; enter cell
+  ; reproduce
+  
+  
 end
+
+
+
+
+;; Depreciated
+to findCell
+    let x 0
+  let y 0
+  let cx 0
+  let cy 0
+  ;; moves out of cell till near another one
+  ask viruses [
+    set x pxcor
+    set y pxcor
+    let best  max-pxcor * 10
+    ask patches with [wall?] [ 
+      ask neighbors4 with [not inside? and not wall?] [ 
+        if dist x y pxcor pycor < best [ set best dist x y pxcor pycor set cx pxcor set cy pycor ]  
+      ]
+    ]
+    facexy cx cy
+    fd 1
+  ]
+
+end
+
 
 ;; Turtle function 
 to-report getxyInCell [ n xy ] 
@@ -168,6 +212,7 @@ to create-cells [n containerSize]
     ]
 ;    print (word "Container # " c " position => " x ", " y)
     createContainer x y containerSize
+    set OriginalCells lput (list x y) OriginalCells
     set cells lput x cells
     set cells lput y cells
     set x random-xcor
@@ -226,6 +271,14 @@ to-report xyProximity [ x y XYlist proximity ]
     set i i + 2
   ]
   report true
+end
+
+
+to-report isProximity [ coordinates xy2 proximity ]
+  foreach xy2 [
+    
+  ]
+
 end
 
 
