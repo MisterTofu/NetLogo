@@ -3,24 +3,45 @@
 ;; Date: June 18th 2013
 ;; Description:
 ;; Notes: Complexity Exponential
-;;        Inconsistent naming
+;;        Needs refactoring 
+;;        Very Complicated, needs simplifying 
 
 
 ; To do
-; Creating viruses completely inside of the cell,
 ; Migrating to other cells then infecting
 ; mutation
+; Restrict initial cells death?
 
 extensions [array table] ;; extensions for arrays and tables 
+globals [ 
+  cells ; List of original coordinates picked for cells
+  CellSize ; size to make cells ( size * 2 + 1)
+  numCells ; number of cells to make
+  pCount ;; keeps track of cell numbers to label them properly
+  cellxy ;; coordinates of all cells in a nested list [ [ cell [ xy coordinates ] ] ]
+]
+
+
+; Viruses
 breed [viruses virus]
-patches-own [ inside? wall? num]
-globals [ cells cellSize numCells pCount cellxy]
-viruses-own [cell]
+viruses-own [
+  cell ; Cell # it started in 
+  mutated? ; Virus Mutated?
+]
+
+
+patches-own [ 
+  inside? ; is Patch inside a cell
+  wall? ; is Patch the wall
+  num ; Cell number assigned for identification
+]
+
 
 to setup
   ca
   setup-vars
   setup-patches
+  setup-viruses
   reset-ticks
 end
 
@@ -29,13 +50,15 @@ to go
   replicate
 end
 
+;; Initialize global variables
 to setup-vars
   set pCount 0
-  set cellSize 2
-  set numCells 3
+  set CellSize 2
+  set numCells 4
   set cells [ ]
   set cellxy [ ]
 end
+
 ;; Where num = container number 
 ;; ask patches with [num = 2 ] [ ask neighbors4 with [inside? and not wall?] [ set pcolor yellow] ]
 to setup-patches
@@ -47,12 +70,13 @@ to setup-patches
       print ""
         print ""
         
-  create-cells numCells cellSize
+  create-cells numCells CellSize
   ;; Fills container
 ; ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
 
-  ask inside [ ask neighbors4 with [not inside?] [set pcolor grey set wall? true] ]
-    setup-viruses
+  ask inside [ ask neighbors4 with [not inside?] [set pcolor [190 190 190] set wall? true] ]
+
+
 end
 
 to setup-viruses
@@ -60,7 +84,7 @@ to setup-viruses
   let i 0
   let l [ ]
   while [ i < numCells ] [
-       ask patches with [num = 1 ] [ 
+       ask patches with [num = i ] [ 
          ask neighbors4 with [inside? and not wall?] [ 
             set l lput (list pxcor pycor) l
          ]
@@ -69,12 +93,17 @@ to setup-viruses
    set l [ ]
    set i i + 1 
   ]
-  foreach cellxy show ;; Show me all my coordinates 
+  set i 1
+  foreach cellxy [ print (word "Cell " i ": " ? ) set i i + 1] ;; Show me all my coordinates 
   
   ;;Create a virus in a cell
   let r random numCells
   let coord getRandomItem getItem r cellxy ;; gets a random coordinate within a cell
-  create-viruses 1 [ set color white set cell r setxy getItem 0 coord getItem 1 coord ]
+  create-viruses 1 [ 
+    set color [195 6 6] 
+    set cell r ;; set which cell this virus is in 
+    setxy getItem 0 coord getItem 1 coord ;; set the coordinates we randomly obtained
+  ]
 end
 
 to replicate
@@ -92,7 +121,12 @@ to replicate
   ]
 end
 
-to-report getxyInCell [ n xy ]
+to infect-cell
+  ask patches with [wall?] [ ask neighbors4 with [not inside? and not wall?] [ set pcolor yellow] ]
+end
+
+;; Turtle function 
+to-report getxyInCell [ n xy ] 
   let coord randomCellN cell cellxy
   while [ distancexy getItem 0 coord getItem 1 coord < 1 ] [
     set coord randomCellN cell cellxy
@@ -115,7 +149,9 @@ to-report getRandomItem [ l ] ;; Made to call recursively
   report item (random length l) l
 end
 
-;; Create containers and space them out evenly 
+;; Creates cells from patches and assigns them variables inside? and wall? 
+;; inside? = patches inside the cell
+;; wall? = the border of the cell
 to create-cells [n containerSize]
   let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 is due to count 0 as a block
   let maxN round (area / square (containerSize * 2 + 3))
@@ -130,7 +166,7 @@ to create-cells [n containerSize]
           set x random-xcor
           set y random-ycor 
     ]
-    print (word "Container # " c " position => " x ", " y)
+;    print (word "Container # " c " position => " x ", " y)
     createContainer x y containerSize
     set cells lput x cells
     set cells lput y cells
@@ -298,10 +334,10 @@ DeathProbability
 HORIZONTAL
 
 MONITOR
-131
-248
-188
-293
+137
+233
+194
+278
 # Virus
 count viruses
 0
