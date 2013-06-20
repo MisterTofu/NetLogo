@@ -4,10 +4,17 @@
 ;; Description:
 ;; Notes: Complexity Exponential
 ;;        Inconsistent naming
+
+
+; To do
+; Creating viruses completely inside of the cell,
+; Migrating to other cells then infecting
+; mutation
+
 extensions [array table] ;; extensions for arrays and tables 
 breed [viruses virus]
 patches-own [ inside? wall? num]
-globals [ containers cellSize numCells pCount cellxy]
+globals [ cells cellSize numCells pCount cellxy]
 viruses-own [cell]
 
 to setup
@@ -26,7 +33,7 @@ to setup-vars
   set pCount 0
   set cellSize 2
   set numCells 3
-  set containers [ ]
+  set cells [ ]
   set cellxy [ ]
 end
 ;; Where num = container number 
@@ -40,7 +47,7 @@ to setup-patches
       print ""
         print ""
         
-  create-containers numCells cellSize
+  create-cells numCells cellSize
   ;; Fills container
 ; ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
 
@@ -76,15 +83,27 @@ to replicate
       die
     ][
       hatch-viruses 1  [ 
-        let coord getRandomItem getItem cell cellxy
+        let coord getxyInCell cell cellxy
         facexy getItem 0 coord getItem 1 coord
+        show (word "         " getItem 0 coord  ", " getItem 1 coord)
         fd 1
-         ]
+        ]
     ]
   ]
 end
 
+to-report getxyInCell [ n xy ]
+  let coord randomCellN cell cellxy
+  while [ distancexy getItem 0 coord getItem 1 coord < 1 ] [
+    set coord randomCellN cell cellxy
+  ] 
+  report coord
+end
 
+;; Gets a random xy from the cell n
+to-report randomCellN [ n xy ]
+  report getRandomItem getItem n xy
+end
 
 ;; Retrieve an item from a list
 to-report getItem [ x l ] ;; Made to call recursively
@@ -97,7 +116,7 @@ to-report getRandomItem [ l ] ;; Made to call recursively
 end
 
 ;; Create containers and space them out evenly 
-to create-containers [n containerSize]
+to create-cells [n containerSize]
   let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 is due to count 0 as a block
   let maxN round (area / square (containerSize * 2 + 3))
   if n > maxN  [ print (word "ERROR: create-container  " n " > "maxN " (maximum cells for area) ") stop ]
@@ -107,14 +126,14 @@ to create-containers [n containerSize]
   let border 0.82   ;; Adjust this percent for amount of entire board to use
   
   while [ c < n ] [    
-    while [not insideBorder x y border or not xyProximity x y containers (containerSize * 2 + 3)][
+    while [not insideBorder x y border or not xyProximity x y cells (containerSize * 2 + 3)][
           set x random-xcor
           set y random-ycor 
     ]
     print (word "Container # " c " position => " x ", " y)
     createContainer x y containerSize
-    set containers lput x containers
-    set containers lput y containers
+    set cells lput x cells
+    set cells lput y cells
     set x random-xcor
     set y random-ycor 
     set c c + 1
@@ -272,7 +291,7 @@ DeathProbability
 DeathProbability
 0
 100
-20
+45
 1
 1
 %
