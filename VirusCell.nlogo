@@ -23,9 +23,14 @@ globals [
   #Cells 
   OriginalXY ; Keeps Original xy of cells [ [x y] [x y] ] 
   
+  MutationSequence
   
   VirusColor
   CellColor
+  
+  ;; Mutation Debugging
+  MatchCount
+  TestCount
 ]
 
 
@@ -33,10 +38,13 @@ globals [
 breed [viruses virus]
 viruses-own [
   cell# ; Cell # it started in 
+  
+  
+  bits ; binary mutation
+  
   mutated? ; Virus Mutated?
   moving? ; Is virus on the move to another cell?
   replicate? ; Should Virus Replicate?
-  
   inCell? ; Virus in a cell?
 ]
 
@@ -58,9 +66,14 @@ to setup
 end
 
 to go
-
+  ; replicate cells
+  ;    Mutate children
+  
+  ; Mutated Cells correctly
+  ;    Find an uninfected cell
+  ;    replicate cells again!
    
-  infect-cell
+  mutation n-values GenomeLength [one-of [0 1]]
   tick
 
 end
@@ -71,6 +84,11 @@ to setup-vars
   set OriginalXY [ ] ; Center of each cell
   set CellSize 2
   set #Cells 4
+  
+;  set GenomeLength 30
+;  set MutationLength 8
+  
+  set MutationSequence n-values MutationLength [one-of [0 1]]
   
   ;; Colors
   set VirusColor [195 6 6]
@@ -101,9 +119,9 @@ to setup-viruses
             set l lput (list pxcor pycor) l
          ]
        ]
-   set CellXY lput l CellXY
-   set l [ ]
-   set i i + 1 
+     set CellXY lput l CellXY
+     set l [ ]
+     set i i + 1 
   ]
   set i 1
   foreach CellXY [ print (word "Cell " i ": " ? ) set i i + 1] ;; Show me all my coordinates 
@@ -115,6 +133,7 @@ to setup-viruses
     set color VirusColor 
     set cell# r ;; set which cell this virus is in 
     setxy getItem 0 coord getItem 1 coord ;; set the coordinates we randomly obtained
+    set bits n-values GenomeLength [one-of [0 1]]
   ]
 end
 
@@ -128,6 +147,79 @@ to replicate
         ]
     ]
   ]
+end
+
+to test-mutation
+  setup-vars
+  mutation n-values GenomeLength [one-of [0 1]]
+  tick
+
+end
+
+to mutation [ genome ] 
+; simple linear search
+  let mutationSum sum sublist MutationSequence 0 MutationLength
+  let i 0
+  let gLength length genome
+  let found? false
+  if gLength > MutationLength [
+    set gLength gLength - MutationLength + 1
+  ]
+  
+  while [ i < gLength  ] [
+      let sequenceSum sum sublist genome i (i + MutationLength)
+;      print (word "SequenceSum: " sequenceSum)
+      if sequenceSum = mutationSum [ ; We might have a match, same sums
+          print (word "Mutation: " MutationSequence "\nGenome:   " sublist genome i (i + MutationLength) "\n")
+          let j 0
+          let temp sublist genome i (i + MutationLength)
+          while [ j < MutationLength ] [
+
+              ifelse position (j) temp = position j MutationSequence [
+                  set j j + 1 ; Matching keep checking
+              ] [
+                  set j MutationLength + 1 ; Not matching
+              ]
+          ]
+          if j = MutationLength [ print "-------MATCH---------\n\n" set i gLength  set found? true set MatchCount MatchCount + 1]
+      ]
+      set i i + 1
+  ]
+  set TestCount TestCount + 1
+  if not found? [ print "No Match\n\n" ]
+end
+
+to-report isMutated [ genome ]
+; simple linear search
+  let mutationSum sum sublist MutationSequence 0 MutationLength
+  let i 0
+  let gLength length genome
+  if gLength > MutationLength [
+    set gLength gLength - MutationLength + 1
+  ]
+  
+  while [ i < gLength  ] [
+      let sequenceSum sum sublist genome i (i + MutationLength)
+;      print (word "SequenceSum: " sequenceSum)
+      if sequenceSum = mutationSum [ ; We might have a match, same sums
+          print (word "Mutation: " MutationSequence "\nGenome:   " sublist genome i (i + MutationLength) "\n\n")
+          let j 0
+          let temp sublist genome i (i + MutationLength)
+          while [ j < MutationLength ] [
+
+              ifelse position (j) temp = position j MutationSequence [
+                  set j j + 1 ; Matching keep checking
+              ] [
+                  set j MutationLength + 1 ; Not matching
+              ]
+          ]
+          if j = MutationLength [ print "-------MATCH---------" report true ]
+      ]
+      
+      set i i + 1
+  ]
+  report false
+  
 end
 
 
@@ -509,10 +601,10 @@ ticks
 30.0
 
 BUTTON
-115
-75
-181
-108
+114
+23
+180
+56
 NIL
 setup
 NIL
@@ -526,10 +618,10 @@ NIL
 1
 
 BUTTON
-116
-121
-179
-154
+115
+69
+178
+102
 go
 go
 NIL
@@ -543,10 +635,10 @@ NIL
 1
 
 SLIDER
-21
-176
-193
-209
+20
+124
+192
+157
 DeathProbability
 DeathProbability
 0
@@ -558,13 +650,82 @@ DeathProbability
 HORIZONTAL
 
 MONITOR
-137
-233
-194
-278
+126
+270
+183
+315
 # Virus
 count viruses
 0
+1
+11
+
+SLIDER
+19
+167
+192
+200
+GenomeLength
+GenomeLength
+10
+100
+34
+1
+1
+bits
+HORIZONTAL
+
+SLIDER
+19
+212
+196
+245
+MutationLength
+MutationLength
+1
+100
+29
+1
+1
+bits
+HORIZONTAL
+
+MONITOR
+19
+271
+107
+316
+NIL
+MatchCount
+0
+1
+11
+
+BUTTON
+10
+24
+102
+57
+Test Mutation
+test-mutation
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+MONITOR
+20
+323
+82
+368
+Match %
+MatchCount / TestCount
+2
 1
 11
 
