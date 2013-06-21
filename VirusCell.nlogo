@@ -31,6 +31,7 @@ globals [
   ;; Mutation Debugging
   MatchCount
   TestCount
+  TestSequence
 ]
 
 
@@ -89,7 +90,7 @@ to setup-vars
 ;  set MutationLength 8
   
   set MutationSequence n-values MutationLength [one-of [0 1]]
-  
+  set TestSequence n-values GenomeLength [one-of [0 1]]
   ;; Colors
   set VirusColor [195 6 6]
   set CellColor [190 190 190]
@@ -151,10 +152,13 @@ end
 
 to test-mutation
   setup-vars
-  mutation n-values GenomeLength [one-of [0 1]]
+  mutation TestSequence
+;  set TestSequence mutateGenome TestSequence
   tick
 
 end
+
+
 
 to mutation [ genome ] 
 ; simple linear search
@@ -165,28 +169,25 @@ to mutation [ genome ]
   if gLength > MutationLength [
     set gLength gLength - MutationLength + 1
   ]
-  
   while [ i < gLength  ] [
       let sequenceSum sum sublist genome i (i + MutationLength)
-;      print (word "SequenceSum: " sequenceSum)
       if sequenceSum = mutationSum [ ; We might have a match, same sums
           print (word "Mutation: " MutationSequence "\nGenome:   " sublist genome i (i + MutationLength) "\n")
           let j 0
-          let temp sublist genome i (i + MutationLength)
-          while [ j < MutationLength ] [
-
+          let temp sublist genome i (i + MutationLength) ; Create a list of the sequence that matched
+          while [ j < MutationLength ] [  ; Check each position
               ifelse position (j) temp = position j MutationSequence [
-                  set j j + 1 ; Matching keep checking
+                  set j j + 1 ; Matched, keep checking
               ] [
-                  set j MutationLength + 1 ; Not matching
+                  set j MutationLength + 1 ; Not matching, exit
               ]
           ]
-          if j = MutationLength [ print "-------MATCH---------\n\n" set i gLength  set found? true set MatchCount MatchCount + 1]
+          if j = MutationLength [ print "-------MATCH---------\n\n" set i gLength set MatchCount MatchCount + 1 ]
       ]
       set i i + 1
   ]
   set TestCount TestCount + 1
-  if not found? [ print "No Match\n\n" ]
+  print "No Match\n\n"  
 end
 
 to-report isMutated [ genome ]
@@ -222,6 +223,16 @@ to-report isMutated [ genome ]
   
 end
 
+to-report mutateGenome [ genome ]
+    let i 0
+    while [ i < length genome ] [
+        if random 100 < MutationProbability [
+            ifelse item i genome = 1 [ set genome replace-item i genome 0 ]
+            [ set genome replace-item i genome 1 ]
+        ]
+    ]
+    report genome
+end
 
 ; Moves virus in its cell randomly
 to move-virus ;; Turtle Function
@@ -650,10 +661,10 @@ DeathProbability
 HORIZONTAL
 
 MONITOR
-126
-270
-183
-315
+131
+312
+188
+357
 # Virus
 count viruses
 0
@@ -691,10 +702,10 @@ bits
 HORIZONTAL
 
 MONITOR
-19
-271
-107
-316
+24
+313
+112
+358
 NIL
 MatchCount
 0
@@ -708,7 +719,7 @@ BUTTON
 57
 Test Mutation
 test-mutation
-T
+NIL
 1
 T
 OBSERVER
@@ -719,15 +730,30 @@ NIL
 1
 
 MONITOR
-20
-323
-82
-368
+25
+365
+87
+410
 Match %
 MatchCount / TestCount
 2
 1
 11
+
+SLIDER
+8
+263
+195
+296
+MutationProbability
+MutationProbability
+1
+100
+5
+1
+1
+ a base
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
