@@ -69,11 +69,11 @@ end
 to setup-patches
   ask patches [ set inside? false set wall? false set num -1] ;; init vars to false
   
-  show "======="
-  print ""
-    print ""
-      print ""
-        print ""
+show "======="
+print ""
+print ""
+print ""
+print ""
         
   create-cells numCells CellSize
   ;; Fills container
@@ -193,6 +193,13 @@ to-report getRandomItem [ l ] ;; Made to call recursively
   report item (random length l) l
 end
 
+to create-cells2 [ n ]
+  let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 is due to count 0 as a block
+;  let maxN round (area / square (containerSize * 2 + 3))
+;  if n > maxN  [ print (word "ERROR: create-container  " n " > "maxN " (maximum cells for area) ") stop ]
+  
+end
+
 ;; Creates cells from patches and assigns them variables inside? and wall? 
 ;; inside? = patches inside the cell
 ;; wall? = the border of the cell
@@ -206,7 +213,7 @@ to create-cells [n containerSize]
   let border 0.82   ;; Adjust this percent for amount of entire board to use
   
   while [ c < n ] [    
-    while [not insideBorder x y border or not xyProximity x y cells (containerSize * 2 + 3)][
+    while [not isInBorder x y border or not xyProximity x y cells (containerSize * 2 + 3)][
           set x random-xcor
           set y random-ycor 
     ]
@@ -281,15 +288,20 @@ to-report isProximity [ coordinates xy2 proximity ]
 
 end
 
-
-to-report insideBorder [ x y border ]
-  let bx max-pxcor * border
-  let by max-pycor * border
-  set x abs x
-  set y abs y
-  if bx > x and by > y [ report true ]
-  report false
+to-report isInBorder [ x y size% ]
+  report (max-pxcor * size%) > abs x and (max-pycor * size%) > abs y
 end
+
+
+;; Depreciated
+;to-report insideBorder [ x y border ]
+;  let bx max-pxcor * border
+;  let by max-pycor * border
+;  set x abs x
+;  set y abs y
+;  if bx > x and by > y [ report true ]
+;  report false
+;end
 
 ;; Random number within a range
 ;; Does not work with negative numbers due to random in API 
