@@ -19,8 +19,10 @@ globals [
    
   CellSize ; size to make cells (actual size = size * 2 + 1)  
   CellXY ;; coordinates of all cells in a nested list [ [ cell [ xy coordinates ] ] ]
-  NumCells ; number of cells to make
+  ;#Cells ; number of cells to make
+  #Cells 
   OriginalXY ; Keeps Original xy of cells [ [x y] [x y] ] 
+  
   
   VirusColor
   CellColor
@@ -34,6 +36,8 @@ viruses-own [
   mutated? ; Virus Mutated?
   moving? ; Is virus on the move to another cell?
   replicate? ; Should Virus Replicate?
+  
+  inCell? ; Virus in a cell?
 ]
 
 
@@ -41,6 +45,7 @@ patches-own [
   inside? ; is Patch inside a cell
   wall? ; is Patch the wall
   num ; Cell number assigned for identification
+  infected? ; is cell infected with virus?
 ]
 
 
@@ -53,8 +58,8 @@ to setup
 end
 
 to go
-;    replicate
 
+   
   infect-cell
   tick
 
@@ -65,8 +70,8 @@ to setup-vars
   set CellXY [ ]     ; Coords of each patch in a cell  
   set OriginalXY [ ] ; Center of each cell
   set CellSize 2
-  set numCells 4
-
+  set #Cells 4
+  
   ;; Colors
   set VirusColor [195 6 6]
   set CellColor [190 190 190]
@@ -75,12 +80,12 @@ end
 ;; Where num = container number 
 ;; ask patches with [num = 2 ] [ ask neighbors4 with [inside? and not wall?] [ set pcolor yellow] ]
 to setup-patches
-  ask patches [ set inside? false set wall? false set num -1] ;; init vars to false
+  ask patches [ set inside? false set wall? false set num -1 set infected? false] ;; init vars to false
   
   show "======="
   print "\n\n\n\n\n\n"
 
-  create-cells numCells
+  create-cells #Cells
   ask inside [ ask neighbors4 with [not inside?] [set pcolor CellColor set wall? true] ]
 
 end
@@ -89,7 +94,7 @@ to setup-viruses
   ;; creates a list of coordinates of all inner cells 
   let i 0
   let l [ ]
-  while [ i < numCells ] [
+  while [ i < #Cells ] [
        ask patches with [num = i ] [ 
          ask neighbors4 with [inside? and not wall?] [
             ; This automatically loops through all patches specified 
@@ -104,7 +109,7 @@ to setup-viruses
   foreach CellXY [ print (word "Cell " i ": " ? ) set i i + 1] ;; Show me all my coordinates 
   
   ;;Create a virus in a cell
-  let r random numCells
+  let r random #Cells
   let coord getRandomItem getItem r CellXY ;; gets a random coordinate within a cell
   create-viruses 1 [ 
     set color VirusColor 
@@ -134,7 +139,28 @@ to move-virus ;; Turtle Function
     fd 1
 end
 
+; isInfected? - returns if cell # is infected
+to-report isInfected? [ c# ]
+    let infect item c# OriginalXY
+    ask patch (item 0 infect) (item 1 infect) [ set infect infected? ]
+    report infect ; Doesn't allow returns nested in "ask"
+end
 
+to setInfected [ c# ]
+    let infect item c# OriginalXY
+    ask patch (item 0 infect) (item 1 infect) [ set infected? true ]
+end
+
+
+; allCellsInfected? - returns if all cells are infected 
+to-report allCellsInfected?
+  let i 0
+  while [ i < #Cells ] [ if not isInfected? i [ report false ]  ]
+  report true
+end
+
+
+; find nearest cell from xy and the current cell it is in
 to-report findClosestCell [ xy currentCell ]
     ; iterate through locations of original cell, find closests
     let best max-pxcor * 2
@@ -154,9 +180,33 @@ to-report findClosestCell [ xy currentCell ]
     report bestxy
 end
 
+
+; Same as above but checks for infections
+to-report findClosestUninfectedCell [ xy currentCell ]
+    if allCellsInfected? [ print ("ERROR: All Cells Infected, while attempting to find uninfected cells") stop ] ; double check
+    
+    ; iterate through locations of original cell, find closests
+    let best max-pxcor * 2
+    let bestxy [ ]
+    let i 0
+    while [ i < length OriginalXY ] [ 
+        if i != currentCell and not isInfected? i[
+            let x (getItem 0 (getItem i OriginalXY))
+            let y (getItem 1 (getItem i OriginalXY))
+            if getDistance (item 0 xy) (item 1 xy) x y  < best [
+                set best getDistance (item 0 xy) (item 1 xy) x y
+                set bestxy (list x y i)
+            ]
+        ]
+        set i i + 1
+    ]
+    report bestxy
+end
+
+
 to infect-cell
   ask viruses [
-      let xy findClosestCell (list pxcor pycor) cell#
+      let xy findClosestUninfectedCell (list pxcor pycor) cell#
       let pCell# [ ]
       ask patch-here [
          set pCell# num
@@ -167,9 +217,9 @@ to infect-cell
           fd 1  
       ][
           set cell# pCell#
+          let temp item pCell# OriginalXY
+          ask patch (item 0 temp) (item 1 temp) [  ]
       ]
-;    if item 2 xy 
-
   ]
   ; exit cell
   ; find closest cell
@@ -430,7 +480,6 @@ end
 ;  ]
 ;  report true
 ;end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
