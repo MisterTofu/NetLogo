@@ -42,7 +42,7 @@ to setup
   ca
   setup-vars
   setup-patches
-  setup-viruses
+;  setup-viruses
   reset-ticks
 end
 
@@ -74,8 +74,8 @@ print ""
 print ""
 print ""
 print ""
-        
-  create-cells numCells CellSize
+    create-cells2 numCells
+;  create-cells numCells CellSize
   ;; Fills container
 ; ask inside [ ask neighbors with [inside?] [set pcolor grey] ]
 
@@ -193,12 +193,7 @@ to-report getRandomItem [ l ] ;; Made to call recursively
   report item (random length l) l
 end
 
-to create-cells2 [ n ]
-  let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 is due to count 0 as a block
-;  let maxN round (area / square (containerSize * 2 + 3))
-;  if n > maxN  [ print (word "ERROR: create-container  " n " > "maxN " (maximum cells for area) ") stop ]
-  
-end
+
 
 ;; Creates cells from patches and assigns them variables inside? and wall? 
 ;; inside? = patches inside the cell
@@ -213,7 +208,7 @@ to create-cells [n containerSize]
   let border 0.82   ;; Adjust this percent for amount of entire board to use
   
   while [ c < n ] [    
-    while [not isInBorder x y border or not xyProximity x y cells (containerSize * 2 + 3)][
+    while [not isInBorder (list x y) border or not isOutsideProximity (list x y) OriginalCells (containerSize * 2 + 3)][
           set x random-xcor
           set y random-ycor 
     ]
@@ -229,8 +224,55 @@ to create-cells [n containerSize]
   ]
 end
 
+to create-cells2 [ n ]
+  ; Adjust this for the amount area to use
+  let area% 0.82 
+  
+  ; Vars
+
+  let x random-xcor
+  let y random-ycor
+  let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 to count (0, 0) as a block
+  let csize (cellSize * 2 + 3) ; Size of the cell container including a border (note cellSize is a global)
+  let maxN round (area / (square csize))  ; max amount of cells that can be created in given space and cellsize
+  ; sterilize input
+  if n > maxN  [ print (word "ERROR: create-container  " n " > " maxN " (maximum cells for area) ") stop ] 
+  
+  let OriginalXY [ ] ; need to be global?
+  
+  while [ length OriginalXY < n ] [
+      ; Get xy that is within the border area and has proximity distance between another cell
+      while [not isInBorder (list x y) area% or not isOutsideProximity (list x y) OriginalXY csize] [
+          set x random-xcor
+          set y random-ycor 
+      ]
+      
+      ; Draw the cell and set its variables 
+      drawCell (list x y) length OriginalXY cellSize ; set the border and other parameters
+      set OriginalXY lput (list x y) OriginalXY ; add to list of xy's to cross check for prroximity
+      set x random-xcor
+      set y random-ycor    ]
+end
+
+
+to drawCell [xy cellNumber containerSize]
+  let x item 0 xy - containerSize
+  let y item 1 xy + containerSize
+  let maxX item 0 xy + containerSize
+  let minY item 1 xy - containerSize
+  ;; Loops from left to right, starting in the upper left most patch
+  while [ y > minY ] [ 
+    while [ x < maxX ] [
+      setPatch2 x y cellNumber
+      set x x + 1 ;; increment
+    ]
+    set x item 0 xy - containerSize ;; reset x to start at furthest left patch
+    set y y - 1 ;; decrement
+  ]
+end
+
 ;; creates a container where x,y as origin, and double the container size
-;; patches inside the container hold the var inside? true
+;; patches inside the container hold the var inside? as true
 to createContainer [centerx centery containerSize]
   let x centerx - containerSize
   let y centery + containerSize
@@ -262,7 +304,7 @@ end
 
 ;; Distance between two xy points, euclid
 to-report dist [x1 y1 x2 y2]
-  report sqrt ( square (x2 - x1) + square (y2 - y1) )
+  report sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
 end
 
 ;; Squares a number, does API have this?
@@ -281,16 +323,32 @@ to-report xyProximity [ x y XYlist proximity ]
 end
 
 
-to-report isProximity [ coordinates xy2 proximity ]
+
+
+
+to-report getSquare [n]
+  report n * n 
+end
+
+to-report isOutsideProximity [ coordinates xy2 proximity ]
   foreach xy2 [
-    
+      if getDistance (item 0 coordinates) (item 1 coordinates) (item 0 ?) (item 1 ?) < proximity [ report false ]
   ]
-
+  report true
 end
 
-to-report isInBorder [ x y size% ]
-  report (max-pxcor * size%) > abs x and (max-pycor * size%) > abs y
+to-report isInBorder [ xy size% ]
+  report (max-pxcor * size%) > abs item 0 xy and (max-pycor * size%) > abs item 1 xy
 end
+
+to-report getDistance [x1 y1 x2 y2]
+  report sqrt ( square (x2 - x1) + square (y2 - y1) )
+end
+
+;; Retrieve an item from a list
+;to-report getItemList [ x l ] ;; Made to call recursively
+;  report item x l 
+;end
 
 
 ;; Depreciated
@@ -311,14 +369,24 @@ to-report ran [minNum maxNum]
   report n
 end
 
+;; Shorthand method
+to setPatch2 [x y cNumber]
+;  let patchColor red ;; color
+  ask patch x y [ 
+      set inside? true 
+      set num cNumber
+;    set pcolor patchColor
+  ]
+end
+
 
 ;; Shorthand method
 to setPatch [x y]
- ; let patchColor red ;; color
+;  let patchColor red ;; color
   ask patch x y [ 
     set inside? true 
     set num pCount
-  ;  set pcolor patchColor
+;    set pcolor patchColor
   ]
 end
 @#$#@#$#@
