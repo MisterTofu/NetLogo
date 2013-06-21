@@ -15,16 +15,12 @@
 extensions [array table] ;; extensions for arrays and tables 
 ;; Global Variables all start with uppercase
 globals [ 
-  OriginalCells ; List of original coordinates picked for cells
-  cells
 
-  
-  pCount ;; keeps track of cell numbers to label them properly
-  
+   
   CellSize ; size to make cells (actual size = size * 2 + 1)  
   CellXY ;; coordinates of all cells in a nested list [ [ cell [ xy coordinates ] ] ]
   NumCells ; number of cells to make
-  
+  OriginalXY ; Keeps Original xy of cells [ [x y] [x y] ] 
   
   VirusColor
   CellColor
@@ -36,6 +32,8 @@ breed [viruses virus]
 viruses-own [
   cell# ; Cell # it started in 
   mutated? ; Virus Mutated?
+  moving? ; Is virus on the move to another cell?
+  replicate? ; Should Virus Replicate?
 ]
 
 
@@ -50,7 +48,7 @@ to setup
   ca
   setup-vars
   setup-patches
-;  setup-viruses
+  setup-viruses
   reset-ticks
 end
 
@@ -64,15 +62,11 @@ end
 
 ;; Initialize global variables
 to setup-vars
-
-
-  set OriginalCells [ ]
-  set cells [ ]
-  
-  set CellXY [ ]
+  set CellXY [ ]     ; Coords of each patch in a cell  
+  set OriginalXY [ ] ; Center of each cell
   set CellSize 2
   set numCells 4
-  
+
   ;; Colors
   set VirusColor [195 6 6]
   set CellColor [190 190 190]
@@ -125,22 +119,57 @@ to replicate
       die
     ][
       hatch-viruses 1  [ 
-        let coord getxyInCell cell# CellXY
-        facexy getItem 0 coord getItem 1 coord
-        show (word "         " getItem 0 coord  ", " getItem 1 coord)
-        fd 1
+          move-virus
         ]
     ]
   ]
 end
 
-to infect-cell
 
+; Moves virus in its cell randomly
+to move-virus ;; Turtle Function
+    let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
+    facexy getItem 0 coord getItem 1 coord
+    show (word "         " getItem 0 coord  ", " getItem 1 coord)
+    fd 1
+end
+
+
+to-report findClosestCell [ xy currentCell ]
+    ; iterate through locations of original cell, find closests
+    let best max-pxcor * 2
+    let bestxy [ ]
+    let i 0
+    while [ i < length OriginalXY ] [
+        if i != currentCell [
+            let x (getItem 0 (getItem i OriginalXY))
+            let y (getItem 1 (getItem i OriginalXY))
+            if getDistance (item 0 xy) (item 1 xy) x y  < best [
+                set best getDistance (item 0 xy) (item 1 xy) x y
+                set bestxy (list x y i)
+            ]
+        ]
+        set i i + 1
+    ]
+    report bestxy
+end
+
+to infect-cell
   ask viruses [
-      let i 0
-;      while [ i < length cells ] [
-;          
-;      ]
+      let xy findClosestCell (list pxcor pycor) cell#
+      let pCell# [ ]
+      ask patch-here [
+         set pCell# num
+      ]
+      ifelse pCell# != item 2 xy [
+          print pCell#
+          facexy item 0 xy item 1 xy
+          fd 1  
+      ][
+          set cell# pCell#
+      ]
+;    if item 2 xy 
+
   ]
   ; exit cell
   ; find closest cell
@@ -232,8 +261,6 @@ to create-cells [ n ]
   let maxN round (area / (getSquare csize))  ; max amount of cells that can be created in given space and cellsize
   ; sterilize input
   if n > maxN  [ print (word "ERROR: create-container  " n " > " maxN " (maximum cells for area) ") stop ] 
-  
-  let OriginalXY [ ] ; need to be global?
   
   while [ length OriginalXY < n ] [
       ; Get xy that is within the border area and has proximity distance between another cell
@@ -403,7 +430,6 @@ end
 ;  ]
 ;  report true
 ;end
-
 
 @#$#@#$#@
 GRAPHICS-WINDOW
