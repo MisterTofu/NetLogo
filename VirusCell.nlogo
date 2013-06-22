@@ -86,8 +86,7 @@ to setup-vars
   set CellSize 2
   set #Cells 4
   
-;  set GenomeLength 30
-;  set MutationLength 8
+
   
   set MutationSequence n-values MutationLength [one-of [0 1]]
   set TestSequence n-values GenomeLength [one-of [0 1]]
@@ -153,9 +152,8 @@ end
 to test-mutation
   setup-vars
   mutation TestSequence
-;  set TestSequence mutateGenome TestSequence
+  set TestSequence mutateGenome TestSequence
   tick
-
 end
 
 
@@ -230,6 +228,7 @@ to-report mutateGenome [ genome ]
             ifelse item i genome = 1 [ set genome replace-item i genome 0 ]
             [ set genome replace-item i genome 1 ]
         ]
+        set i i + 1
     ]
     report genome
 end
@@ -719,7 +718,7 @@ BUTTON
 57
 Test Mutation
 test-mutation
-NIL
+T
 1
 T
 OBSERVER
@@ -749,7 +748,7 @@ MutationProbability
 MutationProbability
 1
 100
-5
+70
 1
 1
  a base
