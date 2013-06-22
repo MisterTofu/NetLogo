@@ -41,7 +41,7 @@ viruses-own [
   cell# ; Cell # it started in 
   
   
-  bits ; binary mutation
+  sequence ; binary mutation
   
   mutated? ; Virus Mutated?
   moving? ; Is virus on the move to another cell?
@@ -73,8 +73,16 @@ to go
   ; Mutated Cells correctly
   ;    Find an uninfected cell
   ;    replicate cells again!
-   
-  mutation n-values GenomeLength [one-of [0 1]]
+  ask viruses [ 
+    ifelse mutated? [
+        infect-cell
+    ]
+    [
+      replicate    
+    ]
+  ]
+
+
   tick
 
 end
@@ -125,7 +133,7 @@ to setup-viruses
   ]
   set i 1
   foreach CellXY [ print (word "Cell " i ": " ? ) set i i + 1] ;; Show me all my coordinates 
-  
+
   ;;Create a virus in a cell
   let r random #Cells
   let coord getRandomItem getItem r CellXY ;; gets a random coordinate within a cell
@@ -133,21 +141,33 @@ to setup-viruses
     set color VirusColor 
     set cell# r ;; set which cell this virus is in 
     setxy getItem 0 coord getItem 1 coord ;; set the coordinates we randomly obtained
-    set bits n-values GenomeLength [one-of [0 1]]
+    set sequence n-values GenomeLength [one-of [0 1]]
+    set mutated? false
   ]
+  
 end
 
 to replicate
-  ask viruses [
     ifelse random 100 < DeathProbability [
       die
     ][
-      hatch-viruses 1  [ 
-          move-virus
+    
+        let parentGenome sequence 
+        hatch-viruses 1  [ 
+          let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
+          facexy getItem 0 coord getItem 1 coord  
+          show (word "         " getItem 0 coord  ", " getItem 1 coord)
+          fd 1
+          set sequence (mutateGenome parentGenome)
+          set mutated? (isMutated sequence)
         ]
+      
+    let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
+    facexy getItem 0 coord getItem 1 coord  
+    fd 1
     ]
-  ]
 end
+
 
 to test-mutation
   setup-vars
@@ -155,7 +175,6 @@ to test-mutation
   set TestSequence mutateGenome TestSequence
   tick
 end
-
 
 
 to mutation [ genome ] 
@@ -233,13 +252,7 @@ to-report mutateGenome [ genome ]
     report genome
 end
 
-; Moves virus in its cell randomly
-to move-virus ;; Turtle Function
-    let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
-    facexy getItem 0 coord getItem 1 coord
-    show (word "         " getItem 0 coord  ", " getItem 1 coord)
-    fd 1
-end
+
 
 ; isInfected? - returns if cell # is infected
 to-report isInfected? [ c# ]
@@ -307,7 +320,6 @@ end
 
 
 to infect-cell
-  ask viruses [
       let xy findClosestUninfectedCell (list pxcor pycor) cell#
       let pCell# [ ]
       ask patch-here [
@@ -322,7 +334,6 @@ to infect-cell
           let temp item pCell# OriginalXY
           ask patch (item 0 temp) (item 1 temp) [  ]
       ]
-  ]
   ; exit cell
   ; find closest cell
   ; move towards
@@ -653,7 +664,7 @@ DeathProbability
 DeathProbability
 0
 100
-45
+0
 1
 1
 %
