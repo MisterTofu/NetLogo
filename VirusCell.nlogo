@@ -27,10 +27,15 @@ globals [
   VirusColor
   CellColor
   
+  ReplicationProbability ; Restrictive 
+  
   ;; Mutation Debugging
   MatchCount
   TestCount
   TestSequence
+  
+  ;; Debugging Output
+  DebugMutation
 ]
 
 
@@ -77,7 +82,7 @@ to setup-vars
     set InfectedCells lput false InfectedCells
     set i i + 1
   ]
-  
+  set ReplicationProbability 50 
   set MutationSequence n-values MutationLength [one-of [0 1]]
   set TestSequence n-values GenomeLength [one-of [0 1]]
   ;; Colors
@@ -126,6 +131,7 @@ to setup-viruses
     set sequence n-values GenomeLength [one-of [0 1]]
     set mutated? false
     set targetCell -1
+    set InfectedCells replace-item cell# InfectedCells true ; Where ever virus starts, cell is considred infected 
   ]
   
 end
@@ -141,12 +147,18 @@ to go
   ;    Find an uninfected cell
   ;    replicate cells again!
   ask viruses [ 
-;    ifelse mutated? [
+    ifelse mutated? [
         infect-cell
-;    ]
-;    [
-;      replicate    
-;    ]
+    ]
+    [
+       if random 100 < DeathProbability [ die ]
+       
+     ifelse random 100 < ReplicationProbability [ replicate ][
+       let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
+       facexy getItem 0 coord getItem 1 coord  
+       fd 1
+      ]
+    ]
   ]
 
 
@@ -159,7 +171,11 @@ to infect-cell
   
   ; If no target, set one
   ifelse targetXY = 0 [
-      set targetXY findClosestUninfectedCell (list pxcor pycor) cell# ; target coordinates
+       ifelse allCellsInfected? [ 
+            set targetXY findClosestCell (list pxcor pycor) cell#
+      ] [
+           set targetXY findClosestUninfectedCell (list pxcor pycor) cell# ; target coordinates
+      ]
       set targetCell item 2 targetXY ; target cell number
       facexy (item 0 targetXY) (item 1 targetXY)
       print (word "XY: " (item 0 targetXY) " " (item 1 targetXY))
@@ -169,7 +185,7 @@ to infect-cell
          set currentPatch num ; each patch was previously assigned either a cell number or -1
       ]
       ifelse currentPatch = targetCell [ ; Arrived at cell destination
-        
+ 
           set InfectedCells replace-item targetCell InfectedCells true
           print (word "Arrived at cell # " targetCell)
           set mutated? false
@@ -179,46 +195,26 @@ to infect-cell
       ][
          fd 1
       ]
-  ]
-;      ifelse currentPatch != targetCell [ ; not equal to targetCell
-;          print currentPatch
-;          facexy item 0 xy item 1 xy
-;          fd 1  
-;      ][
-;           print "Arrived"
-;           set cell# targetCell
-;           set targetCell -1
-;           set mutated? false
-;;          ask patch (item 0 temp) (item 1 temp) [  ]
-;      ]
-  ; exit cell
-  ; find closest cell
-  ; move towards
-  ; enter cell
-  ; reproduce
-  
-  
+  ]  
 end
 
 to replicate
-    ifelse random 100 < DeathProbability [
-      die
-    ][
+
     
-        let parentGenome sequence 
-        hatch-viruses 1  [ 
-          let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
-          facexy getItem 0 coord getItem 1 coord  
-          show (word "         " getItem 0 coord  ", " getItem 1 coord)
-          fd 1
-          set sequence (mutateGenome parentGenome)
-          set mutated? (isMutated sequence)
-        ]
-        
-        let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
-        facexy getItem 0 coord getItem 1 coord  
-        fd 1
+    let parentGenome sequence 
+    hatch-viruses 1  [ 
+      let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
+      facexy getItem 0 coord getItem 1 coord  
+      show (word "         " getItem 0 coord  ", " getItem 1 coord)
+      fd 1
+      set sequence (mutateGenome parentGenome)
+      set mutated? (isMutated sequence)
     ]
+    
+    let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
+    facexy getItem 0 coord getItem 1 coord  
+    fd 1
+    
 end
 
 
@@ -324,8 +320,10 @@ end
 
 ; allCellsInfected? - returns if all cells are infected 
 to-report allCellsInfected?
-  let i 0
-  while [ i < #Cells ] [ if not isInfected? i [ report false ]  ]
+  ; Iterate over each infected cell
+  foreach InfectedCells [
+    if not ? [ report false ]  ; if not infected, return false
+  ]
   report true
 end
 
@@ -353,7 +351,7 @@ end
 
 ; Same as above but checks for infections
 to-report findClosestUninfectedCell [ xy currentCell ]
-    if allCellsInfected? [ print ("ERROR: All Cells Infected, while attempting to find uninfected cells") stop ] ; double check
+    ifelse allCellsInfected? [ print ("ERROR: All Cells Infected, while attempting to find uninfected cells") ][ ; double check
     
     ; iterate through locations of original cell, find closests
     let best max-pxcor * 2
@@ -371,6 +369,7 @@ to-report findClosestUninfectedCell [ xy currentCell ]
         set i i + 1
     ]
     report bestxy
+    ]
 end
 
 
@@ -696,7 +695,7 @@ DeathProbability
 DeathProbability
 0
 100
-0
+55
 1
 1
 %
@@ -737,7 +736,7 @@ MutationLength
 MutationLength
 1
 100
-29
+22
 1
 1
 bits
@@ -777,7 +776,7 @@ MONITOR
 87
 410
 Match %
-MatchCount / TestCount
+MatchCount / TestCount * 100
 2
 1
 11
@@ -791,11 +790,28 @@ MutationProbability
 MutationProbability
 1
 100
-7
+35
 1
 1
  a base
 HORIZONTAL
+
+BUTTON
+25
+73
+91
+106
+Infect
+ask viruses with [mutated?] [\ninfect-cell\n]
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
