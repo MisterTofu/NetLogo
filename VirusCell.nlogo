@@ -19,10 +19,9 @@ globals [
    
   CellSize ; size to make cells (actual size = size * 2 + 1)  
   CellXY ;; coordinates of all cells in a nested list [ [ cell [ xy coordinates ] ] ]
-  ;#Cells ; number of cells to make
-  #Cells 
+  #Cells   ;#Cells ; number of cells to make
   OriginalXY ; Keeps Original xy of cells [ [x y] [x y] ] 
-  
+  InfectedCells ; Keep track of infected cells
   MutationSequence
   
   VirusColor
@@ -46,15 +45,13 @@ viruses-own [
   
   moving? ; Is virus on the move to another cell?
   replicate? ; Should Virus Replicate?
-  inCell? ; Virus in a cell?
 ]
 
 
 patches-own [ 
   inside? ; is Patch inside a cell
-  wall? ; is Patch the wall
+  wall? ; is Patch the wall, remove me?
   num ; Cell number assigned for identification
-  infected? ; is cell infected with virus?
 ]
 
 
@@ -74,8 +71,12 @@ to setup-vars
   set OriginalXY [ ] ; Center of each cell
   set CellSize 2
   set #Cells 4
-  
-
+  set InfectedCells [ ]
+  let i 0
+  while [ i < #Cells ] [
+    set InfectedCells lput false InfectedCells
+    set i i + 1
+  ]
   
   set MutationSequence n-values MutationLength [one-of [0 1]]
   set TestSequence n-values GenomeLength [one-of [0 1]]
@@ -87,7 +88,7 @@ end
 ;; Where num = container number 
 ;; ask patches with [num = 2 ] [ ask neighbors4 with [inside? and not wall?] [ set pcolor yellow] ]
 to setup-patches
-  ask patches [ set inside? false set wall? false set num -1 set infected? false] ;; init vars to false
+  ask patches [ set inside? false set wall? false set num -1] ;; init vars to false
   
   show "======="
   print "\n\n\n\n\n\n"
@@ -129,7 +130,8 @@ to setup-viruses
   
 end
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
   ; replicate cells
@@ -139,12 +141,12 @@ to go
   ;    Find an uninfected cell
   ;    replicate cells again!
   ask viruses [ 
-    ifelse mutated? [
+;    ifelse mutated? [
         infect-cell
-    ]
-    [
-      replicate    
-    ]
+;    ]
+;    [
+;      replicate    
+;    ]
   ]
 
 
@@ -156,26 +158,28 @@ end
 to infect-cell
   
   ; If no target, set one
-  if targetXY = 0 [
+  ifelse targetXY = 0 [
       set targetXY findClosestUninfectedCell (list pxcor pycor) cell# ; target coordinates
       set targetCell item 2 targetXY ; target cell number
-  ]
+      facexy (item 0 targetXY) (item 1 targetXY)
+      print (word "XY: " (item 0 targetXY) " " (item 1 targetXY))
+  ][
   let currentPatch [ ]
       ask patch-here [
-         set currentPatch num
+         set currentPatch num ; each patch was previously assigned either a cell number or -1
       ]
       ifelse currentPatch = targetCell [ ; Arrived at cell destination
-          ask patch-at item 0 targetXY item 1 targetXY [ ; set cell as infected
-              set infected? true
-          ]
-          print (word "Arrived at cell # " )
+        
+          set InfectedCells replace-item targetCell InfectedCells true
+          print (word "Arrived at cell # " targetCell)
           set mutated? false
           set targetXY 0
           set cell# targetCell
           
       ][
-        ; get next patch
+         fd 1
       ]
+  ]
 ;      ifelse currentPatch != targetCell [ ; not equal to targetCell
 ;          print currentPatch
 ;          facexy item 0 xy item 1 xy
@@ -309,15 +313,13 @@ end
 
 ; isInfected? - returns if cell # is infected
 to-report isInfected? [ c# ]
-    let infect item c# OriginalXY
-    ask patch (item 0 infect) (item 1 infect) [ set infect infected? ]
-    report infect ; Doesn't allow returns nested in "ask"
+    report item c# InfectedCells ; Doesn't allow returns nested in "ask"
 end
 
-to setInfected [ c# ]
-    let infect item c# OriginalXY
-    ask patch (item 0 infect) (item 1 infect) [ set infected? true ]
-end
+;to setInfected [ c# ]
+;    let infect item c# OriginalXY
+;    ask patch (item 0 infect) (item 1 infect) [ set infected? true ]
+;end
 
 
 ; allCellsInfected? - returns if all cells are infected 
@@ -363,7 +365,7 @@ to-report findClosestUninfectedCell [ xy currentCell ]
             let y (getItem 1 (getItem i OriginalXY))
             if getDistance (item 0 xy) (item 1 xy) x y  < best [
                 set best getDistance (item 0 xy) (item 1 xy) x y
-                set bestxy (list x y i)
+                set bestxy (list (round x) (round y) i)
             ]
         ]
         set i i + 1
@@ -447,8 +449,8 @@ to create-cells [ n ]
   
   ; Vars
 
-  let x random-xcor
-  let y random-ycor
+  let x (round random-xcor)
+  let y (round random-ycor)
   let area (max-pxcor * 2 + 1) * (max-pycor * 2 + 1) ;; L * W, note adding 1 to count (0, 0) as a block
   let csize (cellSize * 2 + 3) ; Size of the cell container including a border (note cellSize is a global)
   let maxN round (area / (getSquare csize))  ; max amount of cells that can be created in given space and cellsize
@@ -458,8 +460,8 @@ to create-cells [ n ]
   while [ length OriginalXY < n ] [
       ; Get xy that is within the border area and has proximity distance between another cell
       while [not isInBorder (list x y) area% or not isOutsideProximity (list x y) OriginalXY csize] [
-          set x random-xcor
-          set y random-ycor 
+          set x (round random-xcor)
+          set y (round random-ycor)
       ]
       
       ; Draw the cell and set its variables 
@@ -503,7 +505,7 @@ to-report isInBorder [ xy size% ]
 end
 
 to-report getDistance [x1 y1 x2 y2]
-  report sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
+  report round sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
 end
 
 ;; Retrieve an item from a list
