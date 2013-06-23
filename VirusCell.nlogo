@@ -39,11 +39,11 @@ globals [
 breed [viruses virus]
 viruses-own [
   cell# ; Cell # it started in 
-  
-  
   sequence ; binary mutation
-  
+  targetCell ; Cell to target next
   mutated? ; Virus Mutated?
+  targetXY ; Stores coordinates of the 
+  
   moving? ; Is virus on the move to another cell?
   replicate? ; Should Virus Replicate?
   inCell? ; Virus in a cell?
@@ -66,26 +66,7 @@ to setup
   reset-ticks
 end
 
-to go
-  ; replicate cells
-  ;    Mutate children
-  
-  ; Mutated Cells correctly
-  ;    Find an uninfected cell
-  ;    replicate cells again!
-  ask viruses [ 
-    ifelse mutated? [
-        infect-cell
-    ]
-    [
-      replicate    
-    ]
-  ]
 
-
-  tick
-
-end
 
 ;; Initialize global variables
 to setup-vars
@@ -143,7 +124,75 @@ to setup-viruses
     setxy getItem 0 coord getItem 1 coord ;; set the coordinates we randomly obtained
     set sequence n-values GenomeLength [one-of [0 1]]
     set mutated? false
+    set targetCell -1
   ]
+  
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to go
+  ; replicate cells
+  ;    Mutate children
+  
+  ; Mutated Cells correctly
+  ;    Find an uninfected cell
+  ;    replicate cells again!
+  ask viruses [ 
+    ifelse mutated? [
+        infect-cell
+    ]
+    [
+      replicate    
+    ]
+  ]
+
+
+  tick
+
+end
+
+
+to infect-cell
+  
+  ; If no target, set one
+  if targetXY = 0 [
+      set targetXY findClosestUninfectedCell (list pxcor pycor) cell# ; target coordinates
+      set targetCell item 2 targetXY ; target cell number
+  ]
+  let currentPatch [ ]
+      ask patch-here [
+         set currentPatch num
+      ]
+      ifelse currentPatch = targetCell [ ; Arrived at cell destination
+          ask patch-at item 0 targetXY item 1 targetXY [ ; set cell as infected
+              set infected? true
+          ]
+          print (word "Arrived at cell # " )
+          set mutated? false
+          set targetXY 0
+          set cell# targetCell
+          
+      ][
+        ; get next patch
+      ]
+;      ifelse currentPatch != targetCell [ ; not equal to targetCell
+;          print currentPatch
+;          facexy item 0 xy item 1 xy
+;          fd 1  
+;      ][
+;           print "Arrived"
+;           set cell# targetCell
+;           set targetCell -1
+;           set mutated? false
+;;          ask patch (item 0 temp) (item 1 temp) [  ]
+;      ]
+  ; exit cell
+  ; find closest cell
+  ; move towards
+  ; enter cell
+  ; reproduce
+  
   
 end
 
@@ -161,12 +210,15 @@ to replicate
           set sequence (mutateGenome parentGenome)
           set mutated? (isMutated sequence)
         ]
-      
-    let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
-    facexy getItem 0 coord getItem 1 coord  
-    fd 1
+        
+        let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
+        facexy getItem 0 coord getItem 1 coord  
+        fd 1
     ]
 end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 to test-mutation
@@ -231,11 +283,12 @@ to-report isMutated [ genome ]
                   set j MutationLength + 1 ; Not matching
               ]
           ]
-          if j = MutationLength [ print "-------MATCH---------" report true ]
+          if j = MutationLength [ print "-------MATCH---------" set MatchCount MatchCount + 1 report true ]
       ]
       
       set i i + 1
   ]
+    set TestCount TestCount + 1
   report false
   
 end
@@ -319,29 +372,6 @@ to-report findClosestUninfectedCell [ xy currentCell ]
 end
 
 
-to infect-cell
-      let xy findClosestUninfectedCell (list pxcor pycor) cell#
-      let pCell# [ ]
-      ask patch-here [
-         set pCell# num
-      ]
-      ifelse pCell# != item 2 xy [
-          print pCell#
-          facexy item 0 xy item 1 xy
-          fd 1  
-      ][
-          set cell# pCell#
-          let temp item pCell# OriginalXY
-          ask patch (item 0 temp) (item 1 temp) [  ]
-      ]
-  ; exit cell
-  ; find closest cell
-  ; move towards
-  ; enter cell
-  ; reproduce
-  
-  
-end
 
 
 
@@ -645,7 +675,7 @@ BUTTON
 102
 go
 go
-NIL
+T
 1
 T
 OBSERVER
@@ -690,7 +720,7 @@ GenomeLength
 GenomeLength
 10
 100
-34
+47
 1
 1
 bits
@@ -759,7 +789,7 @@ MutationProbability
 MutationProbability
 1
 100
-70
+7
 1
 1
  a base
