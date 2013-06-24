@@ -5,18 +5,23 @@
 
 
 globals [
-  GridNumber
-  GridSize
+  GridLength ; X by X in given area
+  GridSize ; Size of each X
+  GridNumber ; Number of grids
+  
+  ContainerMutation
+  MutationLength
 ]
 
 breed [viruses virus]
 viruses-own [
-  
+  sequence
+  containerNumber
 ]
 
 patches-own [
   inside?
-  container
+  container ; 0... (n-1)
 ]
 
 ;;;;;;;;;;;
@@ -25,94 +30,122 @@ patches-own [
 
 to setup
   ca
+
   setup-variables
   setup-patches
   reset-ticks
 end
 
+
+
 to setup-variables
   set GridSize 3 + 1 ; x + 1 => x by x grid
-  set GridNumber GridNumberUI * 2
+  set GridLength GridLengthUI * 2
+  set GridNumber GridLengthUI * GridLengthUI
+  let i 0
+  set ContainerMutation [ ] ; Needs to be initalized as a list before adding it
+  
+  set MutationLength length convertBinary GridNumber
+  
+  while [ i < GridNumber ] [
+      set ContainerMutation lput (n-values MutationLength [one-of [0 1]]) ContainerMutation
+      set i i + 1
+  ]
 
   ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
-  resize-world (- GridNumber) GridNumber (- GridNumber) GridNumber
+  resize-world (- GridLength) GridLength (- GridLength) GridLength
 end
 
 to setup-patches
-  let x (- GridNumber)
-  let y GridNumber
+  let x (- GridLength)
+  let y GridLength
   
   let halfGridSize round ( GridSize / 2 )
-  let containerX (- GridNumber) + halfGridSize
-  let containerY GridNumber - halfGridSize
+  let containerX (- GridLength) + halfGridSize
+  let containerY GridLength - halfGridSize
   let c 0
   
-    
-  while [ y >= (- GridNumber) ] [
-      while [ x <= GridNumber ] [
-         ask patch x y [ set pcolor grey ]
-         ask patch y x [ set pcolor grey ] 
-     
-         if (containerY >= (- GridNumber) and containerX <= GridNumber ) [
+  ; Iterate over patches, top to bottom, right to left
+  while [ y >= (- GridLength) ] [
+      while [ x <= GridLength ] [
+         ; Color border of grids
+         ask patch x y [ set pcolor grey set inside? false set container -1 ]
+         ask patch y x [ set pcolor grey set inside? false set container -1 ] 
+         
+         ; To setup/color inside the grids, slightly different parameters
+         if (containerY >= (- GridLength) and containerX <= GridLength ) [
              ask patch containerX containerY [  
                  markPatch c ; sets color and container to #
                  
                  ask neighbors with [not (pcolor = grey)] [ 
-                     markPatch c
+                     markPatch c ; keep it dry
                  ]
              ]
-             set c c + 1
+             set c c + 1 
              set containerX containerX + GridSize
          ]
          
          set x x + GridSize
     ]
-  
-    set containerY containerY - GridSize
-    set containerX (- GridNumber) + halfGridSize
+    ; containerX/Y are separate because they mark the inside of grids and x y mark the outside
+    set containerY containerY - GridSize      
+    set containerX (- GridLength) + halfGridSize
     set y y - 1 
-    set x (- GridNumber)
+    set x (- GridLength)
   ]
-  
-  
-  ask patches with [pcolor = 0] [ set inside? true ]
-  ask patches with [pcolor != 0] [ set inside? false ]
-  
-
-
-
-;  while [ y >= (- GridNumber) ] [
-;    while [ x <= GridNumber ] [
-;      ask patch x y [  set pcolor blue set container c ask neighbors with [not (pcolor = grey)] [ set pcolor blue set container c]]
-;      set c c + 1
-;      set x x + GridSize
-;    ]
-;    set y y - GridSize
-;    set x (- GridNumber) + halfGridSize
-;  ]
+ 
 end
 
 ;; Keep it DRY
 to markPatch [ c ]
   set pcolor blue
   set container c
+  set inside? true
 end
+
+; Convert base 10 to binary 
+to-report convertBinary [ num ]
+  let k 2 ; change k to convert to different bases
+  let digit [ ]
+  while [ num != 0 ] [
+    let rem floor ( num mod k )
+    set num floor ( num / k )
+    set digit lput rem digit
+  ]
+  report digit
+end
+
 
 ;;;;;;;;
 ;; Go ;;
 ;;;;;;;;
 
 to go
+  let r random (GridNumber - 1)
+  let xy [ ]
+  ask patches with [ container = r ] [ set xy lput (list pxcor pycor) xy]
+  set r random (length xy - 1)
+  set xy item r xy
+  show xy
+  create-viruses 1 [
+    set color red
+    setxy (item 0 xy) (item 1 xy)
+  ]
+  
   tick
+end
+
+to-report getContainerNumber
+  ask patch-here [ report container ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
 10
-595
-416
-12
-12
+655
+476
+14
+14
 15.0
 1
 10
@@ -123,10 +156,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--12
-12
--12
-12
+-14
+14
+-14
+14
 0
 0
 1
@@ -155,14 +188,14 @@ SLIDER
 66
 199
 99
-GridNumberUI
-GridNumberUI
+GridLengthUI
+GridLengthUI
 1
 20
-6
+7
 1
 1
-NIL
+ by X
 HORIZONTAL
 
 @#$#@#$#@
