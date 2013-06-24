@@ -2,7 +2,7 @@
 ;; Author: Travis A. Ebesu
 ;; Date: June 18th 2013
 ;; Description:
-;; Notes: Complexity Exponential
+;; Notes: 
 ;;        Needs refactoring 
 ;;        Very Complicated, needs simplifying 
 
@@ -699,7 +699,7 @@ DeathProbability
 DeathProbability
 0
 100
-39
+0
 1
 1
 %
@@ -725,7 +725,7 @@ GenomeLength
 GenomeLength
 10
 100
-20
+11
 1
 1
 bits
@@ -740,7 +740,7 @@ MutationLength
 MutationLength
 1
 100
-12
+10
 1
 1
 bits
