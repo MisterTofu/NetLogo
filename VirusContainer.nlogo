@@ -24,15 +24,15 @@ patches-own [
   container ; 0... (n-1)
 ]
 
-;;;;;;;;;;;
-;; Setup ;;
-;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;     Setup     ;;;;;;;;;;;;;;;;;;;;;;;;;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to setup
   ca
-
   setup-variables
   setup-patches
+  setup-viruses
   reset-ticks
 end
 
@@ -96,9 +96,11 @@ to setup-patches
  
 end
 
-;; Keep it DRY
+
+; marks the patch with container number and sets inside? var to true
+; Keep it DRY
 to markPatch [ c ]
-  set pcolor blue
+;  set pcolor blue
   set container c
   set inside? true
 end
@@ -115,22 +117,56 @@ to-report convertBinary [ num ]
   report digit
 end
 
+to setup-viruses
+  let xy getRandomPosition
+  create-viruses 1 [
+    set color red
+    setxy (item 0 xy) (item 1 xy)
+  ]
+  
+end
+
+to-report getRandomPositionInCell [ c ]
+  let xy [ ]
+  ask patches with [ container = c ] [ set xy lput (list pxcor pycor) xy ]
+  let r random (length xy - 1)
+  report item r xy
+end
+
+to-report getRandomPosition
+  let r random (GridNumber - 1)
+  let xy [ ]
+  ask patches with [ container = r ] [ set xy lput (list pxcor pycor) xy]
+  set r random (length xy - 1)
+  report item r xy
+end
+
+
+to-report getAdjacentCells [ c ]
+; check grid length, if at ends of any   
+  let n GridLength / 2; Original x by x - 1
+  let y floor (c / (GridLength / 2))
+  let result (c mod n)
+  let i 0
+  while [ i < GridNumber ] [
+  ; what other conditions will n = 0?
+  ;
+    if (result = 0 or result = y or c < n or c > (GridNumber - n)) [ 
+      print (word result " =>  " y " or <= " n " or >=  " (GridNumber) " \n")
+    ]
+  ]
+  ; n = 0 or multiples of 7
+  ;
+  report false
+end
 
 ;;;;;;;;
 ;; Go ;;
 ;;;;;;;;
 
 to go
-  let r random (GridNumber - 1)
-  let xy [ ]
-  ask patches with [ container = r ] [ set xy lput (list pxcor pycor) xy]
-  set r random (length xy - 1)
-  set xy item r xy
-  show xy
-  create-viruses 1 [
-    set color red
-    setxy (item 0 xy) (item 1 xy)
-  ]
+
+
   
   tick
 end
@@ -197,6 +233,23 @@ GridLengthUI
 1
  by X
 HORIZONTAL
+
+BUTTON
+28
+11
+91
+44
+NIL
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
