@@ -31,46 +31,71 @@ to setup
 end
 
 to setup-variables
-  set GridSize 4
-  set GridNumber 16
-  ; Number of grids drawn = GridNumber * 2 / 4
-  ; 3 x 3
-  
-;  set-patch-size 8
-  ; Make Grid 2 x 2 to start off with
+  set GridSize 3 + 1 ; x + 1 => x by x grid
+  set GridNumber GridNumberUI * 2
+
   ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
-;  resize-world (- GridNumber) GridNumber (- GridNumber) GridNumber
+  resize-world (- GridNumber) GridNumber (- GridNumber) GridNumber
 end
 
 to setup-patches
   let x (- GridNumber)
   let y GridNumber
+  
+  let halfGridSize round ( GridSize / 2 )
+  let containerX (- GridNumber) + halfGridSize
+  let containerY GridNumber - halfGridSize
+  let c 0
+  
+    
   while [ y >= (- GridNumber) ] [
-    while [ x <= GridNumber ] [
-     ask patch x y [ set pcolor grey ]
-     ask patch y x [ set pcolor grey ] 
-     set x x + GridSize
+      while [ x <= GridNumber ] [
+         ask patch x y [ set pcolor grey ]
+         ask patch y x [ set pcolor grey ] 
+     
+         if (containerY >= (- GridNumber) and containerX <= GridNumber ) [
+             ask patch containerX containerY [  
+                 markPatch c ; sets color and container to #
+                 
+                 ask neighbors with [not (pcolor = grey)] [ 
+                     markPatch c
+                 ]
+             ]
+             set c c + 1
+             set containerX containerX + GridSize
+         ]
+         
+         set x x + GridSize
     ]
+  
+    set containerY containerY - GridSize
+    set containerX (- GridNumber) + halfGridSize
     set y y - 1 
     set x (- GridNumber)
   ]
   
+  
   ask patches with [pcolor = 0] [ set inside? true ]
   ask patches with [pcolor != 0] [ set inside? false ]
-  set x (- GridNumber) + 2
-  set y GridNumber - 2
-  let c 0
-  while [ y >= (- GridNumber) ] [
-    while [ x <= GridNumber ] [
-      print (word x " " y )
-      ask patch x y [  set pcolor blue set container c ask neighbors with [not (pcolor = grey)] [ set pcolor blue set container c]]
-      set c c + 1
-      set x x + GridSize
-    ]
-    set y y - GridSize
-    set x (- GridNumber) + 2
-  ]
-  print c
+  
+
+
+
+;  while [ y >= (- GridNumber) ] [
+;    while [ x <= GridNumber ] [
+;      ask patch x y [  set pcolor blue set container c ask neighbors with [not (pcolor = grey)] [ set pcolor blue set container c]]
+;      set c c + 1
+;      set x x + GridSize
+;    ]
+;    set y y - GridSize
+;    set x (- GridNumber) + halfGridSize
+;  ]
+end
+
+;; Keep it DRY
+to markPatch [ c ]
+  set pcolor blue
+  set container c
 end
 
 ;;;;;;;;
@@ -84,10 +109,10 @@ end
 GRAPHICS-WINDOW
 210
 10
-715
-536
-16
-16
+595
+416
+12
+12
 15.0
 1
 10
@@ -98,10 +123,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--16
-16
--16
-16
+-12
+12
+-12
+12
 0
 0
 1
@@ -124,6 +149,21 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+27
+66
+199
+99
+GridNumberUI
+GridNumberUI
+1
+20
+6
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
