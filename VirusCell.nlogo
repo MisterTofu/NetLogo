@@ -36,6 +36,7 @@ globals [
   
   ;; Debugging Output
   DebugMutation
+  Debug
 ]
 
 
@@ -88,6 +89,9 @@ to setup-vars
   ;; Colors
   set VirusColor [195 6 6]
   set CellColor [190 190 190]
+  
+  set DebugMutation false
+  set Debug false
 end
 
 ;; Where num = container number 
@@ -119,7 +123,7 @@ to setup-viruses
      set i i + 1 
   ]
   set i 1
-  foreach CellXY [ print (word "Cell " i ": " ? ) set i i + 1] ;; Show me all my coordinates 
+  if debug [ foreach CellXY [ print (word "Cell " i ": " ? ) set i i + 1] ];; Show me all my coordinates 
 
   ;;Create a virus in a cell
   let r random #Cells
@@ -178,7 +182,7 @@ to infect-cell
       ]
       set targetCell item 2 targetXY ; target cell number
       facexy (item 0 targetXY) (item 1 targetXY)
-      print (word "XY: " (item 0 targetXY) " " (item 1 targetXY))
+;      print (word "XY: " (item 0 targetXY) " " (item 1 targetXY))
   ][
   let currentPatch [ ]
       ask patch-here [
@@ -205,7 +209,7 @@ to replicate
     hatch-viruses 1  [ 
       let coord getxyInCell cell# CellXY    ; Gets a coordinate within the cell
       facexy getItem 0 coord getItem 1 coord  
-      show (word "         " getItem 0 coord  ", " getItem 1 coord)
+      if Debug [ show (word "         " getItem 0 coord  ", " getItem 1 coord) ]
       fd 1
       set sequence (mutateGenome parentGenome)
       set mutated? (isMutated sequence)
@@ -241,7 +245,7 @@ to mutation [ genome ]
   while [ i < gLength  ] [
       let sequenceSum sum sublist genome i (i + MutationLength)
       if sequenceSum = mutationSum [ ; We might have a match, same sums
-          print (word "Mutation: " MutationSequence "\nGenome:   " sublist genome i (i + MutationLength) "\n")
+          if DebugMutation [ print (word "Mutation: " MutationSequence "\nGenome:   " sublist genome i (i + MutationLength) "\n") ]
           let j 0
           let temp sublist genome i (i + MutationLength) ; Create a list of the sequence that matched
           while [ j < MutationLength ] [  ; Check each position
@@ -251,12 +255,12 @@ to mutation [ genome ]
                   set j MutationLength + 1 ; Not matching, exit
               ]
           ]
-          if j = MutationLength [ print "-------MATCH---------\n\n" set i gLength set MatchCount MatchCount + 1 ]
+          if j = MutationLength [ if DebugMutation [ print "-------MATCH---------\n\n"] set i gLength set MatchCount MatchCount + 1 ]
       ]
       set i i + 1
   ]
   set TestCount TestCount + 1
-  print "No Match\n\n"  
+  if DebugMutation [ print "No Match\n\n"  ]
 end
 
 to-report isMutated [ genome ]
@@ -272,7 +276,7 @@ to-report isMutated [ genome ]
       let sequenceSum sum sublist genome i (i + MutationLength)
 ;      print (word "SequenceSum: " sequenceSum)
       if sequenceSum = mutationSum [ ; We might have a match, same sums
-          print (word "Mutation: " MutationSequence "\nGenome:   " sublist genome i (i + MutationLength) "\n\n")
+         if DebugMutation [  print (word "Mutation: " MutationSequence "\nGenome:   " sublist genome i (i + MutationLength) "\n\n") ]
           let j 0
           let temp sublist genome i (i + MutationLength)
           while [ j < MutationLength ] [
@@ -283,7 +287,7 @@ to-report isMutated [ genome ]
                   set j MutationLength + 1 ; Not matching
               ]
           ]
-          if j = MutationLength [ print "-------MATCH---------" set MatchCount MatchCount + 1 report true ]
+          if j = MutationLength [ if DebugMutation [ print "-------MATCH---------"] set MatchCount MatchCount + 1 report true ]
       ]
       
       set i i + 1
@@ -296,7 +300,7 @@ end
 to-report mutateGenome [ genome ]
     let i 0
     while [ i < length genome ] [
-        if random 100 < MutationProbability [
+        if random 100 > MutationProbability [
             ifelse item i genome = 1 [ set genome replace-item i genome 0 ]
             [ set genome replace-item i genome 1 ]
         ]
@@ -695,7 +699,7 @@ DeathProbability
 DeathProbability
 0
 100
-55
+39
 1
 1
 %
@@ -721,7 +725,7 @@ GenomeLength
 GenomeLength
 10
 100
-47
+20
 1
 1
 bits
@@ -736,7 +740,7 @@ MutationLength
 MutationLength
 1
 100
-22
+12
 1
 1
 bits
@@ -790,7 +794,7 @@ MutationProbability
 MutationProbability
 1
 100
-35
+8
 1
 1
  a base
