@@ -5,14 +5,15 @@
 
 
 globals [
-  GridLength ; World Size
+  WorldLength ; World Size
   GridSize ; Size of each X
-  GridNumber ; Number of grids
+  GridNumber ; Number of grids total
   
   ContainerMutation
   MutationLength
   
   Debug
+  DebugMutation
 ]
 
 breed [viruses virus]
@@ -39,44 +40,70 @@ to setup
 end
 
 
+;;;;;;;;;;;;;;;;;;;;;
+;; Setup-Variables ;;
+;;;;;;;;;;;;;;;;;;;;;
 
 to setup-variables
+  ;;;;;;;;;;;;;;;;;;;;
+  ;; Debug Settings ;;
+  ;;;;;;;;;;;;;;;;;;;;
+  
   set Debug false
-  set GridSize 3 + 1 ; x + 1 => x by x grid
-  set GridLength GridLengthUI * 2
+  set DebugMutation false
+  
+  
+  ;;;;;;;;;;;;;;;;;;;;; 
+  ;; World Variables ;;
+  ;;;;;;;;;;;;;;;;;;;;;
+  
+  set GridSize 3 + 1 ; x + 1 => x by x size for each grid
+  ; GridLengthUI is X by X 
+  set WorldLength GridLengthUI * 2
   set GridNumber GridLengthUI * GridLengthUI
-  let i 0
+  ; resize-world min-pxcor max-pxcor min-pycor max-pycor 
+  resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength
+  
+  
+  
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Mutation Variables ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  
   set ContainerMutation [ ] ; Needs to be initalized as a list before adding it
-  
   set MutationLength length convertBinary GridNumber
-  
+  let i 0
   while [ i < GridNumber ] [
       set ContainerMutation lput (n-values MutationLength [one-of [0 1]]) ContainerMutation
       set i i + 1
   ]
 
-  ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
-  resize-world (- GridLength) GridLength (- GridLength) GridLength
+ 
 end
 
+
+;;;;;;;;;;;;;;;;;;;;
+;; Setup Patches  ;;
+;;;;;;;;;;;;;;;;;;;;
 to setup-patches
-  let x (- GridLength)
-  let y GridLength
+  let x (- WorldLength)
+  let y WorldLength
   
   let halfGridSize round ( GridSize / 2 )
-  let containerX (- GridLength) + halfGridSize
-  let containerY GridLength - halfGridSize
+  let containerX (- WorldLength) + halfGridSize
+  let containerY WorldLength - halfGridSize
   let c 0
   
   ; Iterate over patches, top to bottom, right to left
-  while [ y >= (- GridLength) ] [
-      while [ x <= GridLength ] [
+  while [ y >= (- WorldLength) ] [
+      while [ x <= WorldLength ] [
          ; Color border of grids
          ask patch x y [ set pcolor grey set inside? false set container -1 ]
          ask patch y x [ set pcolor grey set inside? false set container -1 ] 
          
          ; To setup/color inside the grids, slightly different parameters
-         if (containerY >= (- GridLength) and containerX <= GridLength ) [
+         if (containerY >= (- WorldLength) and containerX <= WorldLength ) [
              ask patch containerX containerY [  
                  markPatch c ; sets color and container to #
                  
@@ -87,16 +114,142 @@ to setup-patches
              set c c + 1 
              set containerX containerX + GridSize
          ]
-         
          set x x + GridSize
-    ]
-    ; containerX/Y are separate because they mark the inside of grids and x y mark the outside
-    set containerY containerY - GridSize      
-    set containerX (- GridLength) + halfGridSize
-    set y y - 1 
-    set x (- GridLength)
+     ]
+     ; containerX/Y are separate because they mark the inside of grids and x y mark the outside
+     set containerY containerY - GridSize      
+     set containerX (- WorldLength) + halfGridSize
+     set y y - 1 
+     set x (- WorldLength)
+  ]
+end
+
+
+;;;;;;;;;;;;;;;;;;;
+;; Setup-Viruses ;;
+;;;;;;;;;;;;;;;;;;;
+ 
+to setup-viruses
+  let xy getRandomPosition
+  create-viruses 1 [
+    set color red
+    setxy (item 0 xy) (item 1 xy)
+    set containerNumber (item 2 xy)
+    set sequence n-values MutationLength [one-of [0]]
+  ]
+;      let mutatedMatches isMutated sequence (getAdjacentContainers containerNumber) 
+       
+end
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   Go   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to go
+
+
+  tick
+end
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;   Subroutines   ;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+to-report getRandomPositionInCell [ c ]
+  let xy [ ]
+  ask patches with [ container = c ] [ set xy lput (list pxcor pycor) xy ]
+  let r random (length xy - 1)
+  report item r xy
+end
+
+to-report getRandomPosition
+  let r random (GridNumber - 1)
+  let xy [ ]
+  ask patches with [ container = r ] [ set xy lput (list pxcor pycor r) xy]
+  set r random (length xy - 1)
+  report item r xy
+end
+
+
+to-report getAdjacentContainers [ current ]
+  let containerNumbers [ ]
+  let result [ ]
+  
+  ; GridLengthUI is the original X by X, 
+  let edge (current mod GridLengthUI) ; left edge = 0 and right edge = (n - 1), where n = GridLengthUI
+  let row floor (current / GridLengthUI) ; Gets row # 0 - (n - 1), n = GridLengthUI
+  
+  if debug [ print (word "Row: " row " Edge: " edge )]
+  
+  if edge != 0 and current > 0 [ ; Do we have a left side avaliable?
+    set containerNumbers lput (current - 1) containerNumbers 
+    if debug [ print "Has a left side" ]
+  ]     
+  if edge != (GridLengthUI - 1) and current < GridNumber [  ; check right
+    set containerNumbers lput (current + 1) containerNumbers 
+    if debug [print "Has a right side"]
   ]
  
+  if row != 0 [ ; top
+    set containerNumbers lput (current - GridLengthUI) containerNumbers 
+    if debug [print "Has top" ]
+  ]
+  if row != (GridLengthUI - 1) [ 
+    set containerNumbers lput (current + GridLengthUI) containerNumbers 
+    if debug [print "has bottom" ]
+  ]
+  
+  report containerNumbers
+end
+
+; Returns cell numbers, that match
+to-report isMutated [ genome containerNumbers ]
+; simple linear search
+  let mutation [ ]
+  let result [ ]
+  ; Get mutation from each container number
+  foreach containerNumbers [
+    set mutation lput item ? ContainerMutation mutation
+  ]
+  if DebugMutation [  print (word "Mutation: " mutation)  ]
+  let j 0
+ if DebugMutation [print "Testing: Genome  =>  Mutation \n\n"]
+ foreach mutation [
+      ifelse length ? > length genome [ print "Error: Mutation Length > Genome Length         Trace => isMutated" ][
+           let mutationSum sum mutation
+           let i 0
+           while [ (i + length ?) <= length genome ] [
+               if DebugMutation [ print (word sublist genome i ( i + length ? ) "  ==>  " ?) ]
+               
+               if (sublist genome i ( i + length ? )) = ? [
+                    set result lput (item j containerNumbers) result
+                    
+               ]
+               set i i + 1
+           ]
+           set j j + 1
+      ]
+  ]   
+  report result
+end
+
+
+
+to-report getContainerNumber
+  ask patch-here [ report container ]
+end
+
+; Ask patches container
+to-report pContainer [ x ]
+  report patches with [container = x]
 end
 
 
@@ -118,80 +271,6 @@ to-report convertBinary [ num ]
     set digit lput rem digit
   ]
   report digit
-end
-
-to setup-viruses
-  let xy getRandomPosition
-  create-viruses 1 [
-    set color red
-    setxy (item 0 xy) (item 1 xy)
-  ]
-  
-end
-
-to-report getRandomPositionInCell [ c ]
-  let xy [ ]
-  ask patches with [ container = c ] [ set xy lput (list pxcor pycor) xy ]
-  let r random (length xy - 1)
-  report item r xy
-end
-
-to-report getRandomPosition
-  let r random (GridNumber - 1)
-  let xy [ ]
-  ask patches with [ container = r ] [ set xy lput (list pxcor pycor) xy]
-  set r random (length xy - 1)
-  report item r xy
-end
-
-
-to-report getAdjacentCells [ current ]
-
-  ; get row number
-  let result [ ]
-  let edge (current mod GridLengthUI)
-  let row floor (current / GridLengthUI)  ; GridLengthUI is the original X by X, each row progressively increases by 1
-  if debug [ print (word "Row: " row " Edge: " edge )]
-  
-  if edge != 0 and current > 0 [ ; Do we have a left side avaliable?
-    set result lput (current - 1) result 
-    if debug [ print "Has a left side" ]
-  ]     
-  if edge != (GridLengthUI - 1) and current < GridNumber [  ; check right
-    set result lput (current + 1) result 
-    if debug [print "Has a right side"]
-  ]
- 
-  if row != 0 [ ; top
-    set result lput (current - GridLengthUI) result 
-    if debug [print "Has top" ]
-  ]
-  if row != (GridLengthUI - 1) [ 
-    set result lput (current + GridLengthUI) result 
-    if debug [print "has bottom" ]
-  ]
-  
-  report result
-end
-
-;;;;;;;;
-;; Go ;;
-;;;;;;;;
-
-to go
-
-
-  
-  tick
-end
-
-to-report getContainerNumber
-  ask patch-here [ report container ]
-end
-
-; Ask patches container
-to-report pContainer [ x ]
-  report patches with [container = x]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
