@@ -5,12 +5,14 @@
 
 
 globals [
-  GridLength ; X by X in given area
+  GridLength ; World Size
   GridSize ; Size of each X
   GridNumber ; Number of grids
   
   ContainerMutation
   MutationLength
+  
+  Debug
 ]
 
 breed [viruses virus]
@@ -39,6 +41,7 @@ end
 
 
 to setup-variables
+  set Debug false
   set GridSize 3 + 1 ; x + 1 => x by x grid
   set GridLength GridLengthUI * 2
   set GridNumber GridLengthUI * GridLengthUI
@@ -142,22 +145,33 @@ to-report getRandomPosition
 end
 
 
-to-report getAdjacentCells [ c ]
-; check grid length, if at ends of any   
-  let n GridLength / 2; Original x by x - 1
-  let y floor (c / (GridLength / 2))
-  let result (c mod n)
-  let i 0
-  while [ i < GridNumber ] [
-  ; what other conditions will n = 0?
-  ;
-    if (result = 0 or result = y or c < n or c > (GridNumber - n)) [ 
-      print (word result " =>  " y " or <= " n " or >=  " (GridNumber) " \n")
-    ]
+to-report getAdjacentCells [ current ]
+
+  ; get row number
+  let result [ ]
+  let edge (current mod GridLengthUI)
+  let row floor (current / GridLengthUI)  ; GridLengthUI is the original X by X, each row progressively increases by 1
+  if debug [ print (word "Row: " row " Edge: " edge )]
+  
+  if edge != 0 and current > 0 [ ; Do we have a left side avaliable?
+    set result lput (current - 1) result 
+    if debug [ print "Has a left side" ]
+  ]     
+  if edge != (GridLengthUI - 1) and current < GridNumber [  ; check right
+    set result lput (current + 1) result 
+    if debug [print "Has a right side"]
   ]
-  ; n = 0 or multiples of 7
-  ;
-  report false
+ 
+  if row != 0 [ ; top
+    set result lput (current - GridLengthUI) result 
+    if debug [print "Has top" ]
+  ]
+  if row != (GridLengthUI - 1) [ 
+    set result lput (current + GridLengthUI) result 
+    if debug [print "has bottom" ]
+  ]
+  
+  report result
 end
 
 ;;;;;;;;
@@ -174,14 +188,19 @@ end
 to-report getContainerNumber
   ask patch-here [ report container ]
 end
+
+; Ask patches container
+to-report pContainer [ x ]
+  report patches with [container = x]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
 10
-655
-476
-14
-14
+715
+536
+16
+16
 15.0
 1
 10
@@ -192,10 +211,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--14
-14
--14
-14
+-16
+16
+-16
+16
 0
 0
 1
@@ -228,7 +247,7 @@ GridLengthUI
 GridLengthUI
 1
 20
-7
+8
 1
 1
  by X
