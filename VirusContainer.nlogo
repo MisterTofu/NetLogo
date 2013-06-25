@@ -10,7 +10,11 @@ globals [
   GridNumber ; Number of grids total
   
   ContainerMutation
+  ContainerInfected
   MutationLength
+  
+  ReplicationProbability
+  
   
   Debug
   DebugMutation
@@ -20,6 +24,8 @@ breed [viruses virus]
 viruses-own [
   sequence
   containerNumber
+  target
+  targetContainer
 ]
 
 patches-own [
@@ -66,19 +72,21 @@ to setup-variables
   
   
   
-  
   ;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Mutation Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;
   
   set ContainerMutation [ ] ; Needs to be initalized as a list before adding it
+  set ContainerInfected [ ] 
   set MutationLength length convertBinary GridNumber
   let i 0
   while [ i < GridNumber ] [
       set ContainerMutation lput (n-values MutationLength [one-of [0 1]]) ContainerMutation
+      set ContainerInfected lput false ContainerInfected
       set i i + 1
   ]
 
+  set ReplicationProbability 50
  
 end
 
@@ -135,10 +143,14 @@ to setup-viruses
     set color red
     setxy (item 0 xy) (item 1 xy)
     set containerNumber (item 2 xy)
+    set ContainerInfected (replace-item (item 2 xy) ContainerInfected true)
     set sequence n-values MutationLength [one-of [0]]
   ]
-;      let mutatedMatches isMutated sequence (getAdjacentContainers containerNumber) 
-       
+  
+  ask viruses [
+      set target [ ]
+      set targetContainer -1 
+  ]
 end
 
 
@@ -149,7 +161,18 @@ end
 
 to go
 
-
+  ; Try to create a little sychronization 
+  if random 100 < DeathProbability [ ask viruses [ die ] ]
+  ask viruses [ 
+      if not (target = [ ]) [ 
+           
+      ]
+  ]
+  
+  ifelse random 100 < ReplicationProbability 
+  [ replicate ]
+  [ move ]
+      
   tick
 end
 
@@ -162,14 +185,71 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;   Subroutines   ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+to replicate     
+ask viruses [
+    hatch-viruses 1  [ 
 
-to-report getRandomPositionInCell [ c ]
-  let xy [ ]
-  ask patches with [ container = c ] [ set xy lput (list pxcor pycor) xy ]
-  let r random (length xy - 1)
-  report item r xy
+         set sequence (mutateSequence sequence)
+         let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
+         
+         ifelse not (targetContainers = [ ]) [ 
+             set targetContainer one-of targetList ; targetList may return one or more elements, take one
+             set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
+             facexy item 0 target item 1 target
+             fd 1
+         ][
+             let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
+             facexy item 0 coord item 1 coord  
+             fd 1
+         ]
+    ]
+]
+    
 end
 
+to move
+ask viruses [
+; To DO  HERE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; check if we have a target, move until here = targetContainer, set target [ ] set targetContainer - 1
+    let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
+    facexy item 0 coord item 1 coord  
+    fd 1
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+]
+end
+
+
+to-report mutateSequence [ s ]
+    let i 0
+    while [ i < length s ] [
+        if random 100 > MutationProbability [
+            set s replace-item i s one-of [0 1]
+        ]
+        set i i + 1
+    ]
+    report s 
+end
+
+; Returns: random (x y) in cell
+to-report getRandomPositionInContainer [ c currentXY]
+  let xy [ ]
+  let coord [ ]
+  let d 0
+  while [ d < 1 ] [
+     set xy [ ]
+     ask patches with [ container = c ] [ 
+         set xy lput (list pxcor pycor) xy 
+     ]
+     set coord one-of xy
+     set d round (getDistance (item 0 coord) (item 1 coord) (item 0 currentXY) (item 1 currentXY))
+  ]
+  report coord
+end
+
+; Returns: random (x y container-number)
 to-report getRandomPosition
   let r random (GridNumber - 1)
   let xy [ ]
@@ -178,7 +258,7 @@ to-report getRandomPosition
   report item r xy
 end
 
-
+;; Current Cell #
 to-report getAdjacentContainers [ current ]
   let containerNumbers [ ]
   let result [ ]
@@ -210,8 +290,9 @@ to-report getAdjacentContainers [ current ]
   report containerNumbers
 end
 
+; Input: sequence (list), container numbers to check sequence against (list)
 ; Returns cell numbers, that match
-to-report isMutated [ genome containerNumbers ]
+to-report getAccessibleContainers [ genome containerNumbers ]
 ; simple linear search
   let mutation [ ]
   let result [ ]
@@ -261,6 +342,14 @@ to markPatch [ c ]
   set inside? true
 end
 
+to-report getDistance [x1 y1 x2 y2]
+  report round sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
+end
+
+to-report getSquare [n]
+  report n * n 
+end
+
 ; Convert base 10 to binary 
 to-report convertBinary [ num ]
   let k 2 ; change k to convert to different bases
@@ -274,9 +363,9 @@ to-report convertBinary [ num ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+260
 10
-715
+765
 536
 16
 16
@@ -318,9 +407,9 @@ NIL
 1
 
 SLIDER
-27
+8
 66
-199
+228
 99
 GridLengthUI
 GridLengthUI
@@ -339,7 +428,7 @@ BUTTON
 44
 NIL
 go
-NIL
+T
 1
 T
 OBSERVER
@@ -348,6 +437,36 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+9
+110
+228
+143
+DeathProbability
+DeathProbability
+0
+100
+0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+9
+151
+229
+184
+MutationProbability
+MutationProbability
+0
+100
+10
+1
+1
+% per a base
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
