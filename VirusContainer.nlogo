@@ -5,32 +5,31 @@
 
 
 globals [
-  WorldLength ; World Size
-  GridSize ; Size of each X
-  GridNumber ; Number of grids total
+  WorldLength             ;; Length to resize world
+  GridSize                ;; Size of each grid 
+  GridNumber              ;; Total number of grids
   
-  ContainerMutation
-  ContainerInfected
-  MutationLength
+  ContainerSequence       ;; Mutation sequence for each container
+  MutationLength          ;; Length of mutation of each container
+  ReplicationProbability  ;; Probability of virus replicating
   
-  ReplicationProbability
+  Debug                   ;; 
+  DebugMutation           ;; Output for mutation
   
-  
-  Debug
-  DebugMutation
+  InfectedColor
+  VirusColor
 ]
 
 breed [viruses virus]
 viruses-own [
-  sequence
-  containerNumber
-  target ; Target coordinates
-  targetContainer ; Target container #
+  sequence               ;; Virus sequence
+  containerNumber        ;; Virus in current container
+  target                 ;; Coordinates for target container (if applicable)
+  targetContainer        ;; Target container # (if applicable)
 ]
 
 patches-own [
-  inside?
-  container ; 0... (n-1)
+  container              ;; Numbers each container 0... (n - 1)
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -54,7 +53,6 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;
   ;; Debug Settings ;;
   ;;;;;;;;;;;;;;;;;;;;
-  
   set Debug false
   set DebugMutation false
   
@@ -69,20 +67,19 @@ to setup-variables
   set GridNumber GridLengthUI * GridLengthUI
   ; resize-world min-pxcor max-pxcor min-pycor max-pycor 
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength
-  
+  set InfectedColor RGB 215 186 119
   
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Mutation Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;
   
-  set ContainerMutation [ ] ; Needs to be initalized as a list before adding it
-  set ContainerInfected [ ] 
+  set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
+   
   set MutationLength length convertBinary GridNumber
   let i 0
   while [ i < GridNumber ] [
-      set ContainerMutation lput (n-values MutationLength [one-of [0 1]]) ContainerMutation
-      set ContainerInfected lput false ContainerInfected
+      set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
       set i i + 1
   ]
 
@@ -107,16 +104,16 @@ to setup-patches
   while [ y >= (- WorldLength) ] [
       while [ x <= WorldLength ] [
          ; Color border of grids
-         ask patch x y [ set pcolor grey set inside? false set container -1 ]
-         ask patch y x [ set pcolor grey set inside? false set container -1 ] 
+         ask patch x y [ set pcolor grey set container -1 ]
+         ask patch y x [ set pcolor grey set container -1 ] 
          
          ; To setup/color inside the grids, slightly different parameters
          if (containerY >= (- WorldLength) and containerX <= WorldLength ) [
              ask patch containerX containerY [  
-                 markPatch c ; sets color and container to #
+                 set container c
                  
                  ask neighbors with [not (pcolor = grey)] [ 
-                     markPatch c ; keep it dry
+                     set container c 
                  ]
              ]
              set c c + 1 
@@ -139,11 +136,10 @@ end
  
 to setup-viruses
   let xy getRandomPosition
-  create-viruses 2 [
+  create-viruses 1 [
     set color red
     setxy (item 0 xy) (item 1 xy)
     set containerNumber (item 2 xy)
-    set ContainerInfected (replace-item (item 2 xy) ContainerInfected true)
     set sequence n-values MutationLength [one-of [0]]
   ]
   
@@ -162,12 +158,13 @@ end
 to go
 
   ; Try to create a little sychronization 
-  if random 100 < DeathProbability [ ask viruses [ die ] ]
   
-  ; Move if correct mutation
-
+  ;; Kill viruses 
+  if random-float 100 < DeathProbability [ ask viruses [ die ] ]
   
-  ifelse random 100 < ReplicationProbability 
+  
+  ;; Check Replication
+  ifelse random-float 100 < ReplicationProbability 
   [ replicate ]
   [ move ]
       
@@ -203,7 +200,6 @@ ask viruses [
              fd 1
          ]
     ]
-    die
 ]
     
 end
@@ -216,7 +212,6 @@ ask viruses [
     ;; target is xy cordinates
     ;; targetcontainer is container #
     ifelse target = [ ] [
-
           ; No target container, move randomly
           let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
           facexy item 0 coord item 1 coord  
@@ -231,7 +226,7 @@ ask viruses [
              ifelse cur = targetContainer [
                    ; Arrived at destination
                    let temp targetContainer ; due to context, needed to store in another var
-                   ask patches with [ container = temp ] [ set pcolor blue ]
+                   ask patches with [ container = temp ] [ set pcolor InfectedColor ]
                    set containerNumber targetContainer
                    set target [ ]
                    set targetContainer -1
@@ -275,7 +270,7 @@ end
 to-report mutateSequence [ s ]
     let i 0
     while [ i < length s ] [
-        if random 100 > MutationProbability [
+        if random-float  100 > MutationProbability [
             set s replace-item i s one-of [0 1]
         ]
         set i i + 1
@@ -348,7 +343,7 @@ to-report getAccessibleContainers [ genome containerNumbers ]
   let result [ ]
   ; Get mutation from each container number
   foreach containerNumbers [
-    set mutation lput item ? ContainerMutation mutation
+    set mutation lput item ? ContainerSequence mutation
   ]
   if DebugMutation [  print (word "Mutation: " mutation)  ]
   let j 0
@@ -373,24 +368,6 @@ to-report getAccessibleContainers [ genome containerNumbers ]
 end
 
 
-
-to-report getContainerNumber
-  ask patch-here [ report container ]
-end
-
-; Ask patches container
-to-report pContainer [ x ]
-  report patches with [container = x]
-end
-
-
-; marks the patch with container number and sets inside? var to true
-; Keep it DRY
-to markPatch [ c ]
-;  set pcolor blue
-  set container c
-  set inside? true
-end
 
 to-report getDistance [x1 y1 x2 y2]
   report round sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
