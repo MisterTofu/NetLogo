@@ -24,8 +24,8 @@ breed [viruses virus]
 viruses-own [
   sequence
   containerNumber
-  target
-  targetContainer
+  target ; Target coordinates
+  targetContainer ; Target container #
 ]
 
 patches-own [
@@ -139,7 +139,7 @@ end
  
 to setup-viruses
   let xy getRandomPosition
-  create-viruses 1 [
+  create-viruses 2 [
     set color red
     setxy (item 0 xy) (item 1 xy)
     set containerNumber (item 2 xy)
@@ -163,11 +163,9 @@ to go
 
   ; Try to create a little sychronization 
   if random 100 < DeathProbability [ ask viruses [ die ] ]
-  ask viruses [ 
-      if not (target = [ ]) [ 
-           
-      ]
-  ]
+  
+  ; Move if correct mutation
+
   
   ifelse random 100 < ReplicationProbability 
   [ replicate ]
@@ -186,13 +184,15 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to replicate     
+let DebugReplicate true
 ask viruses [
+    let parent sequence
     hatch-viruses 1  [ 
-
-         set sequence (mutateSequence sequence)
+         set sequence (mutateSequence parent)
+        if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
          let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
          
-         ifelse not (targetContainers = [ ]) [ 
+         ifelse not (targetList = [ ]) [ 
              set targetContainer one-of targetList ; targetList may return one or more elements, take one
              set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
              facexy item 0 target item 1 target
@@ -203,6 +203,7 @@ ask viruses [
              fd 1
          ]
     ]
+    die
 ]
     
 end
@@ -212,9 +213,58 @@ ask viruses [
 ; To DO  HERE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; check if we have a target, move until here = targetContainer, set target [ ] set targetContainer - 1
-    let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
-    facexy item 0 coord item 1 coord  
-    fd 1
+    ;; target is xy cordinates
+    ;; targetcontainer is container #
+    ifelse target = [ ] [
+
+          ; No target container, move randomly
+          let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
+          facexy item 0 coord item 1 coord  
+          fd 1
+    ][
+             let cur [ ]
+             
+             ask patch-here [
+                 set cur container ; each patch was previously assigned either a cell number or -1
+             ]
+             
+             ifelse cur = targetContainer [
+                   ; Arrived at destination
+                   let temp targetContainer ; due to context, needed to store in another var
+                   ask patches with [ container = temp ] [ set pcolor blue ]
+                   set containerNumber targetContainer
+                   set target [ ]
+                   set targetContainer -1
+
+             ][
+                   ; Keep moving to destination
+                   facexy item 0 target item 1 target
+                   fd 1
+             ]
+
+    ]
+    
+;      ask viruses [ 
+;      if not (target = [ ]) [ 
+;              let cur [ ]
+;             
+;             ask patch-here [
+;                 set cur container ; each patch was previously assigned either a cell number or -1
+;             ]
+;             
+;             ifelse cur = targetContainer [
+;                   ; Arrived at destination
+;                   ask patches with [ container = targetContainer ] [ set pcolor blue ]
+;                   set target [ ]
+;                   set targetContainer -1
+;             ][
+;                   ; Keep moving to destination
+;                   facexy item 0 target item 1 target
+;                   fd 1
+;             ]
+;      ]
+;  ]
+    
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -365,10 +415,10 @@ end
 GRAPHICS-WINDOW
 260
 10
-765
-536
-16
-16
+645
+416
+12
+12
 15.0
 1
 10
@@ -379,10 +429,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--16
-16
--16
-16
+-12
+12
+-12
+12
 0
 0
 1
@@ -415,7 +465,7 @@ GridLengthUI
 GridLengthUI
 1
 20
-8
+6
 1
 1
  by X
@@ -467,6 +517,17 @@ MutationProbability
 1
 % per a base
 HORIZONTAL
+
+MONITOR
+140
+199
+227
+244
+# of Viruses
+count viruses
+0
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
