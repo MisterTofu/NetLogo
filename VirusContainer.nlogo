@@ -70,9 +70,9 @@ to setup-variables
   ;; World Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;
   
-  set GridSize 3 + 1 ; x + 1 => x by x size for each grid
+  set GridSize 2 ; x + 1 => x by x size for each grid
   ; GridLengthUI is X by X 
-  set WorldLength GridLengthUI * 2
+  set WorldLength GridLengthUI
   set GridCount GridLengthUI * GridLengthUI
   ; resize-world min-pxcor max-pxcor min-pycor max-pycor 
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength
@@ -523,7 +523,7 @@ DeathProbability
 DeathProbability
 0
 100
-0
+2
 1
 1
 %
@@ -538,7 +538,7 @@ MutationProbability
 MutationProbability
 0
 100
-3
+25
 1
 1
 % per a base
@@ -564,7 +564,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-100
+10
 1
 1
 %
@@ -618,6 +618,17 @@ MONITOR
 330
 Infected %
 getInfectedCount / GridCount * 100
+2
+1
+11
+
+MONITOR
+23
+347
+132
+392
+Mutation Count
+MutationCount
 2
 1
 11
