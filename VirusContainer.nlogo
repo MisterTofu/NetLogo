@@ -9,9 +9,11 @@ globals [
   GridSize                ;; Size of each grid 
   GridNumber              ;; Total number of grids
   
+  VirusSequenceLength     ;; Length of virus sequence
+  VirusSequence           ;; Starting Virus sequence
   ContainerSequence       ;; Mutation sequence for each container
   MutationLength          ;; Length of mutation of each container
-  ReplicationProbability  ;; Probability of virus replicating
+  
   
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
@@ -50,6 +52,10 @@ end
 ;;;;;;;;;;;;;;;;;;;;;
 
 to setup-variables
+
+
+
+
   ;;;;;;;;;;;;;;;;;;;;
   ;; Debug Settings ;;
   ;;;;;;;;;;;;;;;;;;;;
@@ -73,18 +79,23 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Mutation Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;
-  
+      
   set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
-   
   set MutationLength length convertBinary GridNumber
+  set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
   let i 0
   while [ i < GridNumber ] [
       set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
       set i i + 1
   ]
 
-  set ReplicationProbability 50
- 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Additional Settings ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+;  set VirusSequence n-values VirusSequenceLength [one-of [0 1]]
+  set VirusSequence n-values VirusSequenceLength [one-of [0]]
+
 end
 
 
@@ -140,10 +151,12 @@ to setup-viruses
     set color red
     setxy (item 0 xy) (item 1 xy)
     set containerNumber (item 2 xy)
-    set sequence n-values MutationLength [one-of [0]]
+    set sequence VirusSequence
   ]
   
   ask viruses [
+      let temp containerNumber
+      ask patches with [ container = temp ] [ set pcolor InfectedColor ]
       set target [ ]
       set targetContainer -1 
   ]
@@ -159,14 +172,12 @@ to go
 
   ; Try to create a little sychronization 
   
-  ;; Kill viruses 
-  if random-float 100 < DeathProbability [ ask viruses [ die ] ]
+  ;; Kill viruses, probability outside ask virus doesn't generate probability per a virus
+  ask viruses [ if random-float 100 < DeathProbability [ die ] ] 
   
   
   ;; Check Replication
-  ifelse random-float 100 < ReplicationProbability 
-  [ replicate ]
-  [ move ]
+  ask viruses [   ifelse random-float 100 < ReplicationProbability [ replicate ][ move ]]
       
   tick
 end
@@ -182,7 +193,6 @@ end
 
 to replicate     
 let DebugReplicate true
-ask viruses [
     let parent sequence
     hatch-viruses 1  [ 
          set sequence (mutateSequence parent)
@@ -200,70 +210,36 @@ ask viruses [
              fd 1
          ]
     ]
-]
-    
+
 end
 
 to move
-ask viruses [
-; To DO  HERE
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;; check if we have a target, move until here = targetContainer, set target [ ] set targetContainer - 1
-    ;; target is xy cordinates
-    ;; targetcontainer is container #
     ifelse target = [ ] [
           ; No target container, move randomly
           let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
           facexy item 0 coord item 1 coord  
           fd 1
     ][
-             let cur [ ]
-             
-             ask patch-here [
-                 set cur container ; each patch was previously assigned either a cell number or -1
-             ]
-             
-             ifelse cur = targetContainer [
-                   ; Arrived at destination
-                   let temp targetContainer ; due to context, needed to store in another var
-                   ask patches with [ container = temp ] [ set pcolor InfectedColor ]
-                   set containerNumber targetContainer
-                   set target [ ]
-                   set targetContainer -1
-
-             ][
-                   ; Keep moving to destination
-                   facexy item 0 target item 1 target
-                   fd 1
-             ]
+         ;; Virus should not be starting at target cell, moving to it first should be fine
+         facexy item 0 target item 1 target
+         fd 1
+         let cur [ ]
+         
+         ask patch-here [
+             set cur container ; each patch was previously assigned either a cell number or -1
+         ]
+         
+         if cur = targetContainer [
+               ; Arrived at destination
+               let temp targetContainer ; due to context, needed to store in another var
+               ask patches with [ container = temp ] [ set pcolor InfectedColor ]
+               set containerNumber targetContainer
+               set target [ ]
+               set targetContainer -1
+ 
+         ]
 
     ]
-    
-;      ask viruses [ 
-;      if not (target = [ ]) [ 
-;              let cur [ ]
-;             
-;             ask patch-here [
-;                 set cur container ; each patch was previously assigned either a cell number or -1
-;             ]
-;             
-;             ifelse cur = targetContainer [
-;                   ; Arrived at destination
-;                   ask patches with [ container = targetContainer ] [ set pcolor blue ]
-;                   set target [ ]
-;                   set targetContainer -1
-;             ][
-;                   ; Keep moving to destination
-;                   facexy item 0 target item 1 target
-;                   fd 1
-;             ]
-;      ]
-;  ]
-    
-    
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-]
 end
 
 
@@ -388,6 +364,38 @@ to-report convertBinary [ num ]
   ]
   report digit
 end
+
+
+
+
+
+
+;; Only called manually 
+to testMutate
+let DebugReplicate true
+let i false
+while [ not i ] [
+ask viruses [
+        let parent sequence
+         set sequence (mutateSequence parent)
+        if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
+         let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
+         
+         ifelse not (targetList = [ ]) [ 
+             set targetContainer one-of targetList ; targetList may return one or more elements, take one
+             set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
+             facexy item 0 target item 1 target
+             fd 1
+             set i true
+
+         ][
+             let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
+             facexy item 0 coord item 1 coord  
+             fd 1
+         ]
+]
+]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 260
@@ -417,10 +425,10 @@ ticks
 30.0
 
 BUTTON
-112
-11
-178
-44
+123
+12
+189
+45
 NIL
 setup\n
 NIL
@@ -434,10 +442,10 @@ NIL
 1
 
 SLIDER
-8
-66
-228
-99
+5
+109
+225
+142
 GridLengthUI
 GridLengthUI
 1
@@ -449,10 +457,10 @@ GridLengthUI
 HORIZONTAL
 
 BUTTON
-28
-11
-91
-44
+123
+57
+186
+90
 NIL
 go
 T
@@ -466,10 +474,10 @@ NIL
 1
 
 SLIDER
-9
-110
-228
-143
+6
+153
+225
+186
 DeathProbability
 DeathProbability
 0
@@ -481,10 +489,10 @@ DeathProbability
 HORIZONTAL
 
 SLIDER
-9
-151
-229
-184
+6
+194
+226
+227
 MutationProbability
 MutationProbability
 0
@@ -496,15 +504,64 @@ MutationProbability
 HORIZONTAL
 
 MONITOR
-140
-199
-227
-244
+143
+287
+230
+332
 # of Viruses
 count viruses
 0
 1
 11
+
+SLIDER
+8
+236
+206
+269
+ReplicationProbability
+ReplicationProbability
+0
+100
+50
+1
+1
+%
+HORIZONTAL
+
+BUTTON
+17
+12
+87
+45
+Go * 2
+go go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+18
+57
+88
+90
+Go * 1
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
