@@ -12,6 +12,8 @@ globals [
   VirusSequenceLength     ;; Length of virus sequence
   VirusSequence           ;; Starting Virus sequence
   ContainerSequence       ;; Mutation sequence for each container
+
+  ContainerInfected       ;; Tracks infected containers 
   MutationLength          ;; Length of mutation of each container
   
   
@@ -81,11 +83,13 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;;;;;
       
   set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
+  set ContainerInfected [ ]
   set MutationLength length convertBinary GridNumber
   set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
   let i 0
   while [ i < GridNumber ] [
       set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
+      set ContainerInfected lput false ContainerInfected
       set i i + 1
   ]
 
@@ -156,7 +160,7 @@ to setup-viruses
   
   ask viruses [
       let temp containerNumber
-      ask patches with [ container = temp ] [ set pcolor InfectedColor ]
+      ask patches with [ container = temp ] [ set pcolor InfectedColor set ContainerInfected replace-item container ContainerInfected true]
       set target [ ]
       set targetContainer -1 
   ]
@@ -169,7 +173,9 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
-
+  ;; All dead  
+  if not any? viruses [ print "\n\nNo Viruses Left" stop ] 
+  if getInfectedCount = GridNumber [ print "\n\nAll Containers Infected" stop ]
   ; Try to create a little sychronization 
   
   ;; Kill viruses, probability outside ask virus doesn't generate probability per a virus
@@ -232,7 +238,7 @@ to move
          if cur = targetContainer [
                ; Arrived at destination
                let temp targetContainer ; due to context, needed to store in another var
-               ask patches with [ container = temp ] [ set pcolor InfectedColor ]
+               ask patches with [ container = temp ] [ set pcolor InfectedColor set ContainerInfected replace-item container ContainerInfected true ]
                set containerNumber targetContainer
                set target [ ]
                set targetContainer -1
@@ -366,7 +372,13 @@ to-report convertBinary [ num ]
 end
 
 
-
+to-report getInfectedCount
+  let total 0
+  foreach ContainerInfected [
+      if ? [ set total total + 1 ]
+  ]
+  report total
+end
 
 
 
@@ -482,7 +494,7 @@ DeathProbability
 DeathProbability
 0
 100
-0
+10
 1
 1
 %
