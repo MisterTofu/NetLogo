@@ -7,7 +7,7 @@
 globals [
   WorldLength             ;; Length to resize world
   GridSize                ;; Size of each grid 
-  GridNumber              ;; Total number of grids
+  GridCount              ;; Total number of grids
   
   VirusSequenceLength     ;; Length of virus sequence
   VirusSequence           ;; Starting Virus sequence
@@ -15,10 +15,11 @@ globals [
 
   ContainerInfected       ;; Tracks infected containers 
   MutationLength          ;; Length of mutation of each container
-  
+  MutationCount           ;; Count of useable mutations
   
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
+  DebugReplicate          ;; Output for replication
   
   InfectedColor
   VirusColor
@@ -63,7 +64,7 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;
   set Debug false
   set DebugMutation false
-  
+  set DebugReplicate false
   
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
@@ -72,7 +73,7 @@ to setup-variables
   set GridSize 3 + 1 ; x + 1 => x by x size for each grid
   ; GridLengthUI is X by X 
   set WorldLength GridLengthUI * 2
-  set GridNumber GridLengthUI * GridLengthUI
+  set GridCount GridLengthUI * GridLengthUI
   ; resize-world min-pxcor max-pxcor min-pycor max-pycor 
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength
   set InfectedColor RGB 215 186 119
@@ -84,10 +85,10 @@ to setup-variables
       
   set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
   set ContainerInfected [ ]
-  set MutationLength length convertBinary GridNumber
+  set MutationLength length convertBinary GridCount
   set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
   let i 0
-  while [ i < GridNumber ] [
+  while [ i < GridCount ] [
       set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
       set ContainerInfected lput false ContainerInfected
       set i i + 1
@@ -175,7 +176,7 @@ end
 to go
   ;; All dead  
   if not any? viruses [ print "\n\nNo Viruses Left" stop ] 
-  if getInfectedCount = GridNumber [ print "\n\nAll Containers Infected" stop ]
+  if getInfectedCount = GridCount [ print "\n\nAll Containers Infected" stop ]
   ; Try to create a little sychronization 
   
   ;; Kill viruses, probability outside ask virus doesn't generate probability per a virus
@@ -198,19 +199,30 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to replicate     
-let DebugReplicate true
     let parent sequence
     hatch-viruses 1  [ 
+    
+         ;; Mutate the parents sequence
          set sequence (mutateSequence parent)
-        if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
+         
+         ;; Color viruses by mutation
+         ;; lets not go over 256, convert the binary to base 10
+         let dif (convertDecimal sequence) mod 256           
+         set color rgb 255 ((255 - dif * 2) mod 256) (dif * 2 mod 256)
+         
+         if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
+         
+         ;; Check for mutation matches
          let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
          
+         ;; We found a mutation, set target and move towards
          ifelse not (targetList = [ ]) [ 
              set targetContainer one-of targetList ; targetList may return one or more elements, take one
              set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
              facexy item 0 target item 1 target
              fd 1
-         ][
+             set MutationCount MutationCount + 1
+         ][ ;; No mutation, twiddle our thumbs 
              let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
              facexy item 0 coord item 1 coord  
              fd 1
@@ -242,7 +254,7 @@ to move
                set containerNumber targetContainer
                set target [ ]
                set targetContainer -1
- 
+
          ]
 
     ]
@@ -278,7 +290,7 @@ end
 
 ; Returns: random (x y container-number)
 to-report getRandomPosition
-  let r random (GridNumber - 1)
+  let r random (GridCount - 1)
   let xy [ ]
   ask patches with [ container = r ] [ set xy lput (list pxcor pycor r) xy]
   set r random (length xy - 1)
@@ -300,7 +312,7 @@ to-report getAdjacentContainers [ current ]
     set containerNumbers lput (current - 1) containerNumbers 
     if debug [ print "Has a left side" ]
   ]     
-  if edge != (GridLengthUI - 1) and current < GridNumber [  ; check right
+  if edge != (GridLengthUI - 1) and current < GridCount [  ; check right
     set containerNumbers lput (current + 1) containerNumbers 
     if debug [print "Has a right side"]
   ]
@@ -371,6 +383,18 @@ to-report convertBinary [ num ]
   report digit
 end
 
+to-report convertDecimal [ num ]
+  let i 0
+  let total 0
+  while [ i < length num ] [
+      if item i num = 1 [
+          set total total + pow 2 i
+      ]
+      set i i + 1
+  ]
+  
+  report total
+end
 
 to-report getInfectedCount
   let total 0
@@ -380,11 +404,16 @@ to-report getInfectedCount
   report total
 end
 
+;; b ^ n
+to-report pow [ b n ]
+  if n = 0 [ report 1 ]
+  if n = 1 [ report b ] 
+  report b * pow b (n - 1)
+end
 
 
 ;; Only called manually 
 to testMutate
-let DebugReplicate true
 let i false
 while [ not i ] [
 ask viruses [
@@ -412,10 +441,10 @@ end
 GRAPHICS-WINDOW
 260
 10
-645
-416
-12
-12
+765
+536
+16
+16
 15.0
 1
 10
@@ -426,10 +455,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--12
-12
--12
-12
+-16
+16
+-16
+16
 0
 0
 1
@@ -462,7 +491,7 @@ GridLengthUI
 GridLengthUI
 1
 20
-6
+8
 1
 1
  by X
@@ -494,7 +523,7 @@ DeathProbability
 DeathProbability
 0
 100
-10
+0
 1
 1
 %
@@ -509,7 +538,7 @@ MutationProbability
 MutationProbability
 0
 100
-10
+3
 1
 1
 % per a base
@@ -535,7 +564,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-50
+100
 1
 1
 %
@@ -574,6 +603,24 @@ NIL
 NIL
 NIL
 1
+
+OUTPUT
+18
+424
+258
+478
+12
+
+MONITOR
+25
+285
+95
+330
+Infected %
+getInfectedCount / GridCount * 100
+2
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
