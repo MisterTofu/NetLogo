@@ -9,6 +9,7 @@ globals [
   GridSize                ;; Size of each grid 
   GridCount              ;; Total number of grids
   
+  VirusNoMovement         ;; Viruses just appear at container once mutated, other way is it takes two ticks to get there
   VirusSequenceLength     ;; Length of virus sequence
   VirusSequence           ;; Starting Virus sequence
   ContainerSequence       ;; Mutation sequence for each container
@@ -57,21 +58,7 @@ end
 
 to setup-variables
 
-  ;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Graphics Settings ;;
-  ;;;;;;;;;;;;;;;;;;;;;;;
-  graphics:initialize  min-pxcor max-pycor patch-size
-  graphics:set-font "monospaced" "Bold" 13
 
-
-  ;;;;;;;;;;;;;;;;;;;;
-  ;; Debug Settings ;;
-  ;;;;;;;;;;;;;;;;;;;;
-  set Debug false
-  set DebugMutation false
-  set DebugReplicate false
-  set DebugDraw true
-  
   
   
   ;;;;;;;;;;;;;;;;;;;;; 
@@ -109,7 +96,25 @@ to setup-variables
 ;  set VirusSequence n-values VirusSequenceLength [one-of [0 1]]
   set VirusSequence n-values VirusSequenceLength [one-of [0]]
 ;  set-default-shape viruses "dot" 
+  set VirusNoMovement true
+  
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Graphics Settings ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;
+  graphics:initialize  min-pxcor max-pycor patch-size
+  graphics:set-font "monospaced" "Bold" 13
 
+
+  ;;;;;;;;;;;;;;;;;;;;
+  ;; Debug Settings ;;
+  ;;;;;;;;;;;;;;;;;;;;
+  set Debug false
+  set DebugMutation false
+  set DebugReplicate false
+  set DebugDraw true
+
+  
 end
 
 
@@ -137,16 +142,8 @@ to setup-patches
              ask patch containerX containerY [  
                  set container c
                  if DebugDraw [
-;                     graphics:set-text-color RGB 255 255 255
-;                     graphics:set-fill-color RGB 0 0 0
-;                     graphics:fill-rectangle containerX - .95 containerY - 0.65 1.95 0.5
                      graphics:draw-text  containerX (containerY - 0.9) "C"  reduce word (item c ContainerSequence) 
-;                     graphics:set-text-color RGB 0 0 0
-;                     graphics:draw-text  containerX - 1 (containerY - 0.9) "C"  " | "
                   ]
-;                 ask neighbors with [not (pcolor = grey)] [ 
-;                     set container c 
-;                 ]
              ]
              set c c + 1 
              set containerX containerX + GridSize
@@ -159,16 +156,6 @@ to setup-patches
      set y y - 1 
      set x (- WorldLength)
   ]
-  
-
-;  let i 0
-;  foreach ContainerSequence [
-;      let xy getPositionInContainer i
-;      graphics:draw-text  item 0 xy (item 1 xy) - 0.85 "C"  reduce word (?)
-;      set i i + 1
-;  ]
-
-;  ask patches with [ not (pcolor = grey)] [ set pcolor white]
 end
 
 
@@ -217,7 +204,10 @@ to go
   
   ;; Viruses not mutated replicate
   ask viruses with [ target = [ ] ] [ if random-float 100 < ReplicationProbability [ replicate ] ]
-      
+  
+
+  
+  
   tick
 end
 
@@ -253,10 +243,19 @@ to replicate
          
          ;; We found a mutation, set target and move towards
          if not (targetList = [ ]) [ 
-             set targetContainer one-of targetList ; targetList may return one or more elements, take one
-             set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
-             facexy item 0 target item 1 target
-             fd 1
+            set targetContainer one-of targetList ; targetList may return one or more elements, take one
+            set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
+            
+           ifelse VirusNoMovement [
+                 setxy item 0 target item 1 target
+                  set ContainerInfected replace-item targetContainer ContainerInfected true 
+                  set containerNumber targetContainer
+                  set target [ ]
+                  set targetContainer -1
+            ][
+                 facexy item 0 target item 1 target
+                 fd 1
+            ]
              set MutationCount MutationCount + 1
          ]
     ]
@@ -479,10 +478,10 @@ end
 GRAPHICS-WINDOW
 313
 11
-773
-492
-7
-7
+558
+252
+3
+3
 30.0
 1
 9
@@ -493,10 +492,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--7
-7
--7
-7
+-3
+3
+-3
+3
 0
 0
 1
@@ -529,7 +528,7 @@ GridLengthUI
 GridLengthUI
 1
 10
-7
+3
 1
 1
  by X
@@ -602,7 +601,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-100
+14
 1
 1
 %
@@ -670,6 +669,24 @@ MutationCount
 2
 1
 11
+
+PLOT
+637
+428
+837
+578
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "histogram [color] of viruses"
 
 @#$#@#$#@
 ## WHAT IS IT?
