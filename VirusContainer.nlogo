@@ -2,7 +2,7 @@
 ;; Author: Travis A. Ebesu
 ;; Description: 
 ;; Notes:
-
+extensions [graphics]
 
 globals [
   WorldLength             ;; Length to resize world
@@ -20,6 +20,7 @@ globals [
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
   DebugReplicate          ;; Output for replication
+  DebugDraw               ;; Draw text?
   
   InfectedColor
   VirusColor
@@ -56,6 +57,7 @@ end
 
 to setup-variables
 
+  graphics:initialize  min-pxcor max-pycor patch-size
 
 
 
@@ -65,6 +67,9 @@ to setup-variables
   set Debug false
   set DebugMutation false
   set DebugReplicate false
+  set DebugDraw true
+  
+  
   
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
@@ -128,7 +133,7 @@ to setup-patches
          if (containerY >= (- WorldLength) and containerX <= WorldLength ) [
              ask patch containerX containerY [  
                  set container c
-                 
+                 if DebugDraw [ graphics:draw-text  containerX containerY - 0.85 "C"  reduce word (item c ContainerSequence) ]
                  ask neighbors with [not (pcolor = grey)] [ 
                      set container c 
                  ]
@@ -144,6 +149,15 @@ to setup-patches
      set y y - 1 
      set x (- WorldLength)
   ]
+  
+
+;  let i 0
+;  foreach ContainerSequence [
+;      let xy getPositionInContainer i
+;      graphics:draw-text  item 0 xy (item 1 xy) - 0.85 "C"  reduce word (?)
+;      set i i + 1
+;  ]
+
 ;  ask patches with [ not (pcolor = grey)] [ set pcolor white]
 end
 
@@ -159,6 +173,7 @@ to setup-viruses
     setxy (item 0 xy) (item 1 xy)
     set containerNumber (item 2 xy)
     set sequence VirusSequence
+    output-print (word "Virus In " containerNumber "  ==>  " sequence )
   ]
   
   ask viruses [
@@ -290,6 +305,15 @@ to-report getRandomPositionInContainer [ c currentXY]
      set d round (getDistance (item 0 coord) (item 1 coord) (item 0 currentXY) (item 1 currentXY))
   ]
   report coord
+end
+
+
+to-report getPositionInContainer [ c ]
+   let xy [ ]
+      ask patches with [ container = c ] [ 
+         set xy (list pxcor pycor)
+     ]
+     report xy 
 end
 
 ; Returns: random (x y container-number)
@@ -445,10 +469,10 @@ end
 GRAPHICS-WINDOW
 260
 10
-587
-358
-4
-4
+657
+428
+5
+5
 35.22222222222222
 1
 10
@@ -459,10 +483,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--4
-4
--4
-4
+-5
+5
+-5
+5
 0
 0
 1
@@ -495,7 +519,7 @@ GridLengthUI
 GridLengthUI
 1
 20
-4
+5
 1
 1
  by X
