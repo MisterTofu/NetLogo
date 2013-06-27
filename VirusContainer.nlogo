@@ -33,6 +33,7 @@ globals [
   
   InfectedColor
   VirusColor
+  BackgroundColor 
 ]
 
 breed [viruses virus]
@@ -103,13 +104,14 @@ to setup-variables
 ;  set-default-shape viruses "dot" 
   set VirusMove false
   set VirusStart 2
-  
+  set BackgroundColor rgb 84 84 84
+    
   ;;;;;;;;;;;;;;;;;;;;;;;
   ;; Graphics Settings ;;
   ;;;;;;;;;;;;;;;;;;;;;;;
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "monospaced" "Bold" 13
-
+  graphics:set-fill-color rgb 84 84 84
 
   ;;;;;;;;;;;;;;;;;;;;
   ;; Debug Settings ;;
@@ -134,13 +136,13 @@ to setup-patches
   let containerX (- WorldLength) + halfGridSize
   let containerY WorldLength - halfGridSize
   let c 0
-  
+  graphics:set-text-color rgb 255 255 255
   ; Iterate over patches, top to bottom, right to left
   while [ y >= (- WorldLength) ] [
       while [ x <= WorldLength ] [
          ; Color border of grids
-         ask patch x y [ set pcolor grey set container -1 ]
-         ask patch y x [ set pcolor grey set container -1 ] 
+         ask patch x y [ set pcolor BackgroundColor set container -1 ]
+         ask patch y x [ set pcolor BackgroundColor set container -1 ] 
          
          ; To setup/color inside the grids, slightly different parameters
          if (containerY >= (- WorldLength) and containerX <= WorldLength ) [
@@ -187,6 +189,8 @@ to setup-viruses [ n ]
        output-print (word "Virus => " containerNumber "  ==>  " sequence )
      ]
   ]
+  
+  if DebugDraw [ drawVirusCounts ]
 end
 
 
@@ -208,7 +212,7 @@ to go
   
   ;; Replicate viruses by probability specified
   ask viruses [ if random-float 100 < ReplicationProbability [ replicate ] ]
-   
+  if DebugDraw [ drawVirusCounts ]
   tick
 end
 
@@ -220,6 +224,20 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;   Subroutines   ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to drawVirusCounts
+  graphics:set-text-color rgb 0 20 148
+
+  let i 0
+  while [ i < GridCount ] [
+      let xy [ ]
+      ask patches with [container = i] [ set xy (list pxcor pycor) ]
+      graphics:fill-rectangle (item 0 xy - 1.5)  (item 1 xy + 0.75) 1 0.5
+      graphics:draw-text (item 0 xy - 1)  (item 1 xy + 0.5) "C" (word count viruses-on patches with [container = i])
+      set i i + 1
+  ]
+end
+
 
 to replicate     
 
