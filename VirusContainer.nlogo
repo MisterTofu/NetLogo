@@ -76,7 +76,7 @@ to setup-variables
   set GridCount GridLengthUI * GridLengthUI
   ; resize-world min-pxcor max-pxcor min-pycor max-pycor 
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength
-  set InfectedColor RGB 215 186 119
+  set InfectedColor RGB 252 244 228
   
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,6 +100,7 @@ to setup-variables
   
 ;  set VirusSequence n-values VirusSequenceLength [one-of [0 1]]
   set VirusSequence n-values VirusSequenceLength [one-of [0]]
+;  set-default-shape viruses "dot" 
 
 end
 
@@ -143,6 +144,7 @@ to setup-patches
      set y y - 1 
      set x (- WorldLength)
   ]
+;  ask patches with [ not (pcolor = grey)] [ set pcolor white]
 end
 
 
@@ -161,7 +163,8 @@ to setup-viruses
   
   ask viruses [
       let temp containerNumber
-      ask patches with [ container = temp ] [ set pcolor InfectedColor set ContainerInfected replace-item container ContainerInfected true]
+      ask patches with [ container = temp ] [ ;set pcolor InfectedColor 
+      set ContainerInfected replace-item container ContainerInfected true]
       set target [ ]
       set targetContainer -1 
   ]
@@ -183,8 +186,12 @@ to go
   ask viruses [ if random-float 100 < DeathProbability [ die ] ] 
   
   
-  ;; Check Replication
-  ask viruses [   ifelse random-float 100 < ReplicationProbability [ replicate ][ move ]]
+
+  ;; Move mutated viruses first
+  ask viruses with [ not (target = [ ]) ] [ move ]
+  
+  ;; Viruses not mutated replicate
+  ask viruses with [ target = [ ] ] [ if random-float 100 < ReplicationProbability [ replicate ] ]
       
   tick
 end
@@ -207,8 +214,12 @@ to replicate
          
          ;; Color viruses by mutation
          ;; lets not go over 256, convert the binary to base 10
-         let dif (convertDecimal sequence) mod 256           
-         set color rgb 255 ((255 - dif * 2) mod 256) (dif * 2 mod 256)
+         let dif (convertDecimal sequence)         
+        
+                 
+                                                                                                                                       
+                                                                                                                                      
+          set color scale-color red dif (GridCount * 2) 0
          
          if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
          
@@ -216,28 +227,20 @@ to replicate
          let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
          
          ;; We found a mutation, set target and move towards
-         ifelse not (targetList = [ ]) [ 
+         if not (targetList = [ ]) [ 
              set targetContainer one-of targetList ; targetList may return one or more elements, take one
              set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
              facexy item 0 target item 1 target
              fd 1
              set MutationCount MutationCount + 1
-         ][ ;; No mutation, twiddle our thumbs 
-             let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
-             facexy item 0 coord item 1 coord  
-             fd 1
          ]
     ]
 
 end
 
 to move
-    ifelse target = [ ] [
-          ; No target container, move randomly
-          let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
-          facexy item 0 coord item 1 coord  
-          fd 1
-    ][
+
+    if not (target = [ ]) [ 
          ;; Virus should not be starting at target cell, moving to it first should be fine
          facexy item 0 target item 1 target
          fd 1
@@ -247,14 +250,15 @@ to move
              set cur container ; each patch was previously assigned either a cell number or -1
          ]
          
+         ;; Check if we are at the destination
          if cur = targetContainer [
                ; Arrived at destination
                let temp targetContainer ; due to context, needed to store in another var
-               ask patches with [ container = temp ] [ set pcolor InfectedColor set ContainerInfected replace-item container ContainerInfected true ]
+               ask patches with [ container = temp ] [ ;set pcolor InfectedColor 
+                 set ContainerInfected replace-item container ContainerInfected true ]
                set containerNumber targetContainer
                set target [ ]
                set targetContainer -1
-
          ]
 
     ]
@@ -441,11 +445,11 @@ end
 GRAPHICS-WINDOW
 260
 10
-765
-536
-16
-16
-15.0
+587
+358
+4
+4
+35.22222222222222
 1
 10
 1
@@ -455,10 +459,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--16
-16
--16
-16
+-4
+4
+-4
+4
 0
 0
 1
@@ -491,7 +495,7 @@ GridLengthUI
 GridLengthUI
 1
 20
-8
+4
 1
 1
  by X
@@ -523,7 +527,7 @@ DeathProbability
 DeathProbability
 0
 100
-2
+0
 1
 1
 %
@@ -538,7 +542,7 @@ MutationProbability
 MutationProbability
 0
 100
-25
+22
 1
 1
 % per a base
@@ -564,7 +568,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-10
+100
 1
 1
 %
