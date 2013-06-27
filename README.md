@@ -1,6 +1,8 @@
-Netlogo - Agent Based Modeler
+#Netlogo - Agent Based Modeler
 
-Models 
+##Models 
+* Virus Container
+  	Parts of Virus Spread/Cell and expanded for more practical problems
 * Find Food Source
        Generates food and makes the wolf chase the closests food
 * Prey Predator
@@ -10,7 +12,13 @@ Models
 * Virus Cell
 	Expands on virus spread, but uses containers or cells as starting points for infections
 
-Examples
+
+##Extensions
+* Graphics
+	Credits: http://evolve.lse.ac.uk/NetLogo/extensions/Simulations-NetLogo%20Extensions.php
+
+
+##Examples
 * AIDS
 * DemGenTrout
 * Simple Genetic Algorithm

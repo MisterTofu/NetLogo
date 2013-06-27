@@ -57,8 +57,11 @@ end
 
 to setup-variables
 
+  ;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Graphics Settings ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;
   graphics:initialize  min-pxcor max-pycor patch-size
-
+  graphics:set-font "monospaced" "Bold" 13
 
 
   ;;;;;;;;;;;;;;;;;;;;
@@ -133,10 +136,17 @@ to setup-patches
          if (containerY >= (- WorldLength) and containerX <= WorldLength ) [
              ask patch containerX containerY [  
                  set container c
-                 if DebugDraw [ graphics:draw-text  containerX containerY - 0.85 "C"  reduce word (item c ContainerSequence) ]
-                 ask neighbors with [not (pcolor = grey)] [ 
-                     set container c 
-                 ]
+                 if DebugDraw [
+;                     graphics:set-text-color RGB 255 255 255
+;                     graphics:set-fill-color RGB 0 0 0
+;                     graphics:fill-rectangle containerX - .95 containerY - 0.65 1.95 0.5
+                     graphics:draw-text  containerX (containerY - 0.9) "C"  reduce word (item c ContainerSequence) 
+;                     graphics:set-text-color RGB 0 0 0
+;                     graphics:draw-text  containerX - 1 (containerY - 0.9) "C"  " | "
+                  ]
+;                 ask neighbors with [not (pcolor = grey)] [ 
+;                     set container c 
+;                 ]
              ]
              set c c + 1 
              set containerX containerX + GridSize
@@ -467,15 +477,15 @@ ask viruses [
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-260
-10
-657
-428
-5
-5
-35.22222222222222
+313
+11
+773
+492
+7
+7
+30.0
 1
-10
+9
 1
 1
 1
@@ -483,10 +493,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--5
-5
--5
-5
+-7
+7
+-7
+7
 0
 0
 1
@@ -518,8 +528,8 @@ SLIDER
 GridLengthUI
 GridLengthUI
 1
-20
-5
+10
+7
 1
 1
  by X
@@ -566,17 +576,17 @@ MutationProbability
 MutationProbability
 0
 100
-22
+23
 1
 1
 % per a base
 HORIZONTAL
 
 MONITOR
-143
-287
-230
-332
+13
+280
+100
+325
 # of Viruses
 count viruses
 0
@@ -633,28 +643,28 @@ NIL
 1
 
 OUTPUT
-18
-424
-258
-478
+4
+402
+302
+474
 12
 
 MONITOR
-25
-285
-95
-330
-Infected %
-getInfectedCount / GridCount * 100
-2
+111
+280
+252
+325
+Infected Compartments
+getInfectedCount
+0
 1
 11
 
 MONITOR
-23
-347
-132
-392
+15
+339
+124
+384
 Mutation Count
 MutationCount
 2
