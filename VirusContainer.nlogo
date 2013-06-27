@@ -2,6 +2,13 @@
 ;; Author: Travis A. Ebesu
 ;; Description: 
 ;; Notes:
+
+
+;; Initial virus, does not move to another container
+;; Mutated virus, will only move once to another container
+
+
+
 extensions [graphics]
 
 globals [
@@ -58,9 +65,6 @@ end
 
 to setup-variables
 
-
-  
-  
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;
@@ -94,7 +98,7 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;;;;;;
   
 ;  set VirusSequence n-values VirusSequenceLength [one-of [0 1]]
-  set VirusSequence n-values VirusSequenceLength [one-of [0]]
+  set VirusSequence [0]
 ;  set-default-shape viruses "dot" 
   set VirusNoMovement true
   
@@ -169,17 +173,45 @@ to setup-viruses
     set color red
     setxy (item 0 xy) (item 1 xy)
     set containerNumber (item 2 xy)
-    set sequence VirusSequence
+    set sequence  n-values VirusSequenceLength [one-of VirusSequence]
     output-print (word "Virus In " containerNumber "  ==>  " sequence )
   ]
   
+  ;;  Virus - sequence, containerNumber, target, targetContainer
   ask viruses [
       let temp containerNumber
-      ask patches with [ container = temp ] [ ;set pcolor InfectedColor 
-      set ContainerInfected replace-item container ContainerInfected true]
+      ask patches with [ container = temp ] [
+          set ContainerInfected (replace-item container ContainerInfected true)
+      ]
+      
       set target [ ]
       set targetContainer -1 
   ]
+end
+
+
+to make-viruses [ n ]
+
+  ;;  Virus - sequence, containerNumber, target, targetContainer  
+  let xy getRandomPosition                 ;; Get a random xy position in a container 
+  create-viruses 1 [    
+    set color red                          ;; Make virus red
+    setxy (item 0 xy) (item 1 xy)          ;; Create virus at this xy 
+    set containerNumber (item 2 xy)        ;; Set the container number it is infecting
+    set target [ ]                         ;; Set an empty list
+    set targetContainer -1                 ;; Set this -1 so we know it doesnt have a target
+    set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
+    
+    let temp containerNumber               ;; Temp var required to call below
+    ;; Set our global variable  container as infected
+    set ContainerInfected (replace-item containerNumber ContainerInfected true)
+;    ask patches with [ container = temp ] [ set ContainerInfected (replace-item container ContainerInfected true) ]
+    
+    output-print (word "Virus In " containerNumber "  ==>  " sequence )
+  ]
+  
+
+
 end
 
 
@@ -478,10 +510,10 @@ end
 GRAPHICS-WINDOW
 313
 11
-558
-252
-3
-3
+653
+372
+5
+5
 30.0
 1
 9
@@ -492,10 +524,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--3
-3
--3
-3
+-5
+5
+-5
+5
 0
 0
 1
@@ -528,7 +560,7 @@ GridLengthUI
 GridLengthUI
 1
 10
-3
+5
 1
 1
  by X
@@ -671,10 +703,10 @@ MutationCount
 11
 
 PLOT
-637
-428
-837
-578
+740
+16
+940
+166
 plot 1
 NIL
 NIL
@@ -686,7 +718,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "histogram [color] of viruses"
+"default" 1.0 0 -16777216 true "" "plot count viruses"
 
 @#$#@#$#@
 ## WHAT IS IT?
