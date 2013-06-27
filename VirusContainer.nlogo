@@ -16,10 +16,8 @@ globals [
   GridSize                ;; Size of each grid 
   GridCount              ;; Total number of grids
   
-  VirusStart              ;; Number of starting viruses
   VirusMove               ;; Viruses just appear at container once mutated, other way is it takes two ticks to get there
   VirusSequenceLength     ;; Length of virus sequence
-  VirusSequence           ;; Starting Virus sequence
   ContainerSequence       ;; Mutation sequence for each container
 
   ContainerInfected       ;; Tracks infected containers 
@@ -29,7 +27,7 @@ globals [
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
   DebugReplicate          ;; Output for replication
-  DebugDraw               ;; Draw text?
+ 
   
   InfectedColor
   VirusColor
@@ -100,10 +98,9 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;;;;;;
   
 ;  set VirusSequence n-values VirusSequenceLength [one-of [0 1]]
-  set VirusSequence [0]
+;  set VirusSequence [0]
 ;  set-default-shape viruses "dot" 
   set VirusMove false
-  set VirusStart 2
   set BackgroundColor rgb 84 84 84
     
   ;;;;;;;;;;;;;;;;;;;;;;;
@@ -111,7 +108,7 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;;;;
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "monospaced" "Bold" 13
-  graphics:set-fill-color rgb 84 84 84
+  graphics:set-fill-color BackgroundColor
 
   ;;;;;;;;;;;;;;;;;;;;
   ;; Debug Settings ;;
@@ -119,7 +116,6 @@ to setup-variables
   set Debug false
   set DebugMutation false
   set DebugReplicate false
-  set DebugDraw true
 
   
 end
@@ -149,7 +145,7 @@ to setup-patches
              ask patch containerX containerY [  
                  set container c
                  if DebugDraw [
-                     graphics:draw-text  containerX (containerY - 0.9) "C"  reduce word (item c ContainerSequence) 
+                     graphics:draw-text  containerX (containerY + 0.7) "C"  reduce word (item c ContainerSequence) 
                   ]
              ]
              set c c + 1 
@@ -163,8 +159,21 @@ to setup-patches
      set y y - 1 
      set x (- WorldLength)
   ]
+ 
+
 end
 
+to drawVirusCounts
+  graphics:set-text-color rgb 0 20 148
+  let i 0
+  while [ i < GridCount ] [
+      let xy [ ]
+      ask patches with [container = i] [ set xy (list pxcor pycor) ]
+      graphics:fill-rectangle (item 0 xy - 0.9 )  (item 1 xy + 1.4) 2 0.5
+      graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word count viruses-on patches with [container = i])
+      set i i + 1
+  ]
+end
 
 ;;;;;;;;;;;;;;;;;;;
 ;; Setup-Viruses ;;
@@ -225,18 +234,7 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;   Subroutines   ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to drawVirusCounts
-  graphics:set-text-color rgb 0 20 148
 
-  let i 0
-  while [ i < GridCount ] [
-      let xy [ ]
-      ask patches with [container = i] [ set xy (list pxcor pycor) ]
-      graphics:fill-rectangle (item 0 xy - 1.5)  (item 1 xy + 0.75) 1 0.5
-      graphics:draw-text (item 0 xy - 1)  (item 1 xy + 0.5) "C" (word count viruses-on patches with [container = i])
-      set i i + 1
-  ]
-end
 
 
 to replicate     
@@ -261,7 +259,7 @@ to replicate
                  facexy (item 0 target) (item 1 target)
                  fd 1
             ][   
-                 let space 0.5
+                 let space 0.35
                   setxy ((item 0 target) - random-float space + random-float space) ((item 1 target) - random-float space + random-float space)
                   set ContainerInfected replace-item (item 2 target) ContainerInfected true 
                   set containerNumber item 2 target
@@ -502,10 +500,10 @@ end
 GRAPHICS-WINDOW
 313
 11
-558
-252
-3
-3
+713
+432
+6
+6
 30.0
 1
 9
@@ -516,10 +514,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--3
-3
--3
-3
+-6
+6
+-6
+6
 0
 0
 1
@@ -527,10 +525,10 @@ ticks
 30.0
 
 BUTTON
-123
-12
-189
-45
+222
+10
+288
+43
 NIL
 setup\n
 NIL
@@ -544,25 +542,25 @@ NIL
 1
 
 SLIDER
-5
-109
-225
-142
+7
+134
+227
+167
 GridLengthUI
 GridLengthUI
 1
 10
-3
+6
 1
 1
  by X
 HORIZONTAL
 
 BUTTON
-123
-57
-186
-90
+222
+55
+285
+88
 NIL
 go
 T
@@ -576,10 +574,10 @@ NIL
 1
 
 SLIDER
-6
-153
-225
-186
+8
+178
+227
+211
 DeathProbability
 DeathProbability
 0
@@ -591,10 +589,10 @@ DeathProbability
 HORIZONTAL
 
 SLIDER
-6
-194
-226
-227
+8
+219
+228
+252
 MutationProbability
 MutationProbability
 0
@@ -606,10 +604,10 @@ MutationProbability
 HORIZONTAL
 
 MONITOR
-13
-280
-100
-325
+15
+305
+102
+350
 # of Viruses
 count viruses
 0
@@ -617,10 +615,10 @@ count viruses
 11
 
 SLIDER
-8
-236
-206
-269
+10
+261
+208
+294
 ReplicationProbability
 ReplicationProbability
 0
@@ -632,10 +630,10 @@ ReplicationProbability
 HORIZONTAL
 
 BUTTON
-17
-12
-87
-45
+138
+10
+208
+43
 Go * 2
 go go
 NIL
@@ -649,10 +647,10 @@ NIL
 1
 
 BUTTON
-18
-57
+139
+55
+209
 88
-90
 Go * 1
 go
 NIL
@@ -666,17 +664,17 @@ NIL
 1
 
 OUTPUT
-4
-402
-302
-474
+6
+427
+304
+499
 12
 
 MONITOR
-111
-280
-252
-325
+113
+305
+254
+350
 Infected Compartments
 getInfectedCount
 0
@@ -684,10 +682,10 @@ getInfectedCount
 11
 
 MONITOR
-15
-339
-124
-384
+17
+364
+126
+409
 Mutation Count
 MutationCount
 2
@@ -711,6 +709,42 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot count viruses"
+
+SWITCH
+9
+10
+123
+43
+DebugDraw
+DebugDraw
+0
+1
+-1000
+
+CHOOSER
+8
+562
+125
+607
+VirusSequence
+VirusSequence
+[0] [1] [0 1]
+1
+
+SLIDER
+8
+93
+180
+126
+VirusStart
+VirusStart
+1
+100
+9
+1
+1
+Viruses
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
