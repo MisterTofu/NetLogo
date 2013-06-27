@@ -16,7 +16,8 @@ globals [
   GridSize                ;; Size of each grid 
   GridCount              ;; Total number of grids
   
-  VirusNoMovement         ;; Viruses just appear at container once mutated, other way is it takes two ticks to get there
+  VirusStart              ;; Number of starting viruses
+  VirusMove               ;; Viruses just appear at container once mutated, other way is it takes two ticks to get there
   VirusSequenceLength     ;; Length of virus sequence
   VirusSequence           ;; Starting Virus sequence
   ContainerSequence       ;; Mutation sequence for each container
@@ -54,7 +55,7 @@ to setup
   ca
   setup-variables
   setup-patches
-  setup-viruses
+  setup-viruses VirusStart
   reset-ticks
 end
 
@@ -100,8 +101,8 @@ to setup-variables
 ;  set VirusSequence n-values VirusSequenceLength [one-of [0 1]]
   set VirusSequence [0]
 ;  set-default-shape viruses "dot" 
-  set VirusNoMovement true
-  
+  set VirusMove false
+  set VirusStart 2
   
   ;;;;;;;;;;;;;;;;;;;;;;;
   ;; Graphics Settings ;;
@@ -167,53 +168,26 @@ end
 ;; Setup-Viruses ;;
 ;;;;;;;;;;;;;;;;;;;
  
-to setup-viruses
-  let xy getRandomPosition
-  create-viruses 1 [
-    set color red
-    setxy (item 0 xy) (item 1 xy)
-    set containerNumber (item 2 xy)
-    set sequence  n-values VirusSequenceLength [one-of VirusSequence]
-    output-print (word "Virus In " containerNumber "  ==>  " sequence )
-  ]
-  
-  ;;  Virus - sequence, containerNumber, target, targetContainer
-  ask viruses [
-      let temp containerNumber
-      ask patches with [ container = temp ] [
-          set ContainerInfected (replace-item container ContainerInfected true)
-      ]
-      
-      set target [ ]
-      set targetContainer -1 
+to setup-viruses [ n ]
+  repeat n [
+     ;;  Virus - sequence, containerNumber, target, targetContainer  
+     let xy getRandomPosition                 ;; Get a random xy position in a container 
+     create-viruses 1 [    
+       set size 0.5
+       rt random-float 360
+       set color red                          ;; Make virus red
+       setxy (item 0 xy) (item 1 xy)          ;; Create virus at this xy 
+       set containerNumber (item 2 xy)        ;; Set the container number it is infecting
+       set target [ ]                         ;; Set an empty list
+       set targetContainer -1                 ;; Set this -1 so we know it doesnt have a target
+       set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
+       ;; Set our global variable  container as infected
+       set ContainerInfected (replace-item containerNumber ContainerInfected true)
+       ;; Outputting Viruses, Starting container and sequence
+       output-print (word "Virus => " containerNumber "  ==>  " sequence )
+     ]
   ]
 end
-
-
-to make-viruses [ n ]
-
-  ;;  Virus - sequence, containerNumber, target, targetContainer  
-  let xy getRandomPosition                 ;; Get a random xy position in a container 
-  create-viruses 1 [    
-    set color red                          ;; Make virus red
-    setxy (item 0 xy) (item 1 xy)          ;; Create virus at this xy 
-    set containerNumber (item 2 xy)        ;; Set the container number it is infecting
-    set target [ ]                         ;; Set an empty list
-    set targetContainer -1                 ;; Set this -1 so we know it doesnt have a target
-    set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
-    
-    let temp containerNumber               ;; Temp var required to call below
-    ;; Set our global variable  container as infected
-    set ContainerInfected (replace-item containerNumber ContainerInfected true)
-;    ask patches with [ container = temp ] [ set ContainerInfected (replace-item container ContainerInfected true) ]
-    
-    output-print (word "Virus In " containerNumber "  ==>  " sequence )
-  ]
-  
-
-
-end
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -221,25 +195,20 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
-  ;; All dead  
-  if not any? viruses [ print "\n\nNo Viruses Left" stop ] 
-  if getInfectedCount = GridCount [ print "\n\nAll Containers Infected" stop ]
-  ; Try to create a little sychronization 
+  ;; Check for goal states
+  if not any? viruses [ output-print "\n\n-----------No Viruses Left-----------" stop ] 
+  if getInfectedCount = GridCount [ output-print "\n\n-------All Containers Infected-------" stop ]
   
-  ;; Kill viruses, probability outside ask virus doesn't generate probability per a virus
+  ;; Kill viruses by probability specified to prevent over population 
   ask viruses [ if random-float 100 < DeathProbability [ die ] ] 
-  
   
 
   ;; Move mutated viruses first
-  ask viruses with [ not (target = [ ]) ] [ move ]
+;  ask viruses with [ not (target = [ ]) ] [ move ]
   
-  ;; Viruses not mutated replicate
-  ask viruses with [ target = [ ] ] [ if random-float 100 < ReplicationProbability [ replicate ] ]
-  
-
-  
-  
+  ;; Replicate viruses by probability specified
+  ask viruses [ if random-float 100 < ReplicationProbability [ replicate ] ]
+   
   tick
 end
 
@@ -253,40 +222,32 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to replicate     
+
     let parent sequence
     hatch-viruses 1  [ 
-    
          ;; Mutate the parents sequence
          set sequence (mutateSequence parent)
+         rt random-float 360
+         ;; Color viruses by mutation - Binary is converted to decimal to use it as offset
+         ;; This requires adjustment based on world size
+          set color scale-color red (convertDecimal sequence) (GridCount * 2) 0
          
-         ;; Color viruses by mutation
-         ;; lets not go over 256, convert the binary to base 10
-         let dif (convertDecimal sequence)         
-        
-                 
-                                                                                                                                       
-                                                                                                                                      
-          set color scale-color red dif (GridCount * 2) 0
-         
-         if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
+         if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]   ;; debug print parent & mutation
          
          ;; Check for mutation matches
-         let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
+         set target getTargetContainer sequence containerNumber
          
          ;; We found a mutation, set target and move towards
-         if not (targetList = [ ]) [ 
-            set targetContainer one-of targetList ; targetList may return one or more elements, take one
-            set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
-            
-           ifelse VirusNoMovement [
-                 setxy item 0 target item 1 target
-                  set ContainerInfected replace-item targetContainer ContainerInfected true 
-                  set containerNumber targetContainer
-                  set target [ ]
-                  set targetContainer -1
-            ][
-                 facexy item 0 target item 1 target
+         if not (target = [ ]) [   
+           ifelse VirusMove [
+                 facexy (item 0 target) (item 1 target)
                  fd 1
+            ][   
+                 let space 0.5
+                  setxy ((item 0 target) - random-float space + random-float space) ((item 1 target) - random-float space + random-float space)
+                  set ContainerInfected replace-item (item 2 target) ContainerInfected true 
+                  set containerNumber item 2 target
+                  set target [ ]
             ]
              set MutationCount MutationCount + 1
          ]
@@ -349,12 +310,13 @@ to-report getRandomPositionInContainer [ c currentXY]
 end
 
 
+
 to-report getPositionInContainer [ c ]
-   let xy [ ]
-      ask patches with [ container = c ] [ 
-         set xy (list pxcor pycor)
-     ]
-     report xy 
+  let temp [ ]     ;; Cant report from non-observer context
+   ask patches with [ container = c ] [ 
+     set temp (list pxcor pycor)
+   ] 
+  report temp
 end
 
 ; Returns: random (x y container-number)
@@ -398,31 +360,43 @@ to-report getAdjacentContainers [ current ]
   report containerNumbers
 end
 
+to-report getTargetContainer [ genome currentContainer ]
+    let adjacentContainers getAdjacentContainers containerNumber          ;; Gets adjacent cell numbers
+    let accessible getAccessibleContainers genome adjacentContainers    ;; Cross check with mutations
+    if not (accessible = [ ]) [  ;; Mutated and can enter another cell
+        let selected one-of accessible 
+        report sentence (getPositionInContainer selected) selected
+    ]
+    report [ ]
+end
+
 ; Input: sequence (list), container numbers to check sequence against (list)
 ; Returns cell numbers, that match
-to-report getAccessibleContainers [ genome containerNumbers ]
 ; simple linear search
+to-report getAccessibleContainers [ genome containerNumbers ]
   let mutation [ ]
   let result [ ]
-  ; Get mutation from each container number
-  foreach containerNumbers [
-    set mutation lput item ? ContainerSequence mutation
-  ]
-  if DebugMutation [  print (word "Mutation: " mutation)  ]
-  let j 0
- if DebugMutation [print "Testing: Genome  =>  Mutation \n\n"]
+  
+  ;; Get mutation sequence from each container number
+  foreach containerNumbers [ set mutation lput item ? ContainerSequence mutation ]
+
+ ;; Debug Information 
+ if DebugMutation [ print (word "Mutation: " mutation "\nTesting: Genome  =>  Mutation \n\n")]
+ 
+ let j 0 ;; using it as a for loop with foreach
  foreach mutation [
-      ifelse length ? > length genome [ print "Error: Mutation Length > Genome Length         Trace => isMutated" ][
-           let mutationSum sum mutation
+      ;; mutation sequence cant be longer than one being compared
+      ifelse length ? > length genome [ print "Error: Mutation Length > Input Length         Trace => getAccessibleContainers" ][
            let i 0
+           ;; Compare every bit
            while [ (i + length ?) <= length genome ] [
-               if DebugMutation [ print (word sublist genome i ( i + length ? ) "  ==>  " ?) ]
-               
+               ;; We have a match
                if (sublist genome i ( i + length ? )) = ? [
-                    set result lput (item j containerNumbers) result
-                    
+                    if DebugMutation [ print (word sublist genome i ( i + length ? ) "  ==>  " ?) ]
+                    set result lput (item j containerNumbers) result     ;; add container number result
+                    set i i + length genome                              ;; exit while loop
                ]
-               set i i + 1
+               set i i + 1 
            ]
            set j j + 1
       ]
@@ -510,10 +484,10 @@ end
 GRAPHICS-WINDOW
 313
 11
-653
-372
-5
-5
+558
+252
+3
+3
 30.0
 1
 9
@@ -524,10 +498,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--5
-5
--5
-5
+-3
+3
+-3
+3
 0
 0
 1
@@ -560,7 +534,7 @@ GridLengthUI
 GridLengthUI
 1
 10
-5
+3
 1
 1
  by X
@@ -592,7 +566,7 @@ DeathProbability
 DeathProbability
 0
 100
-0
+4
 1
 1
 %
@@ -633,7 +607,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-14
+11
 1
 1
 %
