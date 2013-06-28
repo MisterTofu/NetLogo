@@ -4,6 +4,19 @@
 ;; Notes:
 
 
+
+
+
+
+
+
+
+
+
+;Problem - It doesnt keep all bits if not needed i think... double check on its conversion to binary and stuff
+
+
+
 ;; Initial virus, does not move to another container
 ;; Mutated virus, will only move once to another container
 
@@ -55,6 +68,9 @@ to setup
   setup-variables
   setup-patches
   setup-viruses VirusStart
+  
+
+  
   reset-ticks
 end
 
@@ -73,9 +89,10 @@ to setup-variables
   ; GridLengthUI is X by X 
   set WorldLength GridLengthUI
   set GridCount GridLengthUI * GridLengthUI
-  ; resize-world min-pxcor max-pxcor min-pycor max-pycor 
-  resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength
+
+  resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
   set InfectedColor RGB 252 244 228
+  ifelse GridLengthUI <= 5 [ set-patch-size 35 ] [ set-patch-size 30 ]
   
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -102,8 +119,7 @@ to setup-variables
 ;  set-default-shape viruses "dot" 
   set VirusMove false
   set BackgroundColor rgb 84 84 84
-    
-  ;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;
   ;; Graphics Settings ;;
   ;;;;;;;;;;;;;;;;;;;;;;;
   graphics:initialize  min-pxcor max-pycor patch-size
@@ -146,6 +162,7 @@ to setup-patches
                  set container c
                  if DebugDraw [
                      graphics:draw-text  containerX (containerY + 0.7) "C"  reduce word (item c ContainerSequence) 
+;                     graphics:fill-rectangle containerX - 0.5 containerY + 0.5 1 1
                   ]
              ]
              set c c + 1 
@@ -159,7 +176,11 @@ to setup-patches
      set y y - 1 
      set x (- WorldLength)
   ]
+  if DebugDraw [ 
  
+    ]
+
+; ask patches with [ not (pcolor = BackgroundColor)] [ set pcolor lime + 4.2]
 
 end
 
@@ -496,15 +517,27 @@ ask viruses [
 ]
 ]
 end
+to testSequenceLength
+    repeat 20 [
+      foreach ContainerSequence [ if not (length ? = MutationLength) [ print "\n\n---Huston we got a problem---\n\n" stop ] ]
+      set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
+      print "No Error so far, reshuffling sequence"
+      let i 0
+      while [ i < GridCount ] [
+          set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
+          set i i + 1
+      ]
+  ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 313
 11
-713
-432
-6
-6
-30.0
+638
+357
+4
+4
+35.0
 1
 9
 1
@@ -514,10 +547,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--6
-6
--6
-6
+-4
+4
+-4
+4
 0
 0
 1
@@ -548,9 +581,9 @@ SLIDER
 167
 GridLengthUI
 GridLengthUI
-1
-10
-6
+2
+8
+4
 1
 1
  by X
@@ -582,7 +615,7 @@ DeathProbability
 DeathProbability
 0
 100
-4
+6
 1
 1
 %
@@ -623,7 +656,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-11
+15
 1
 1
 %
@@ -666,7 +699,7 @@ NIL
 OUTPUT
 6
 427
-304
+291
 499
 12
 
@@ -693,10 +726,10 @@ MutationCount
 11
 
 PLOT
-740
-16
-940
-166
+218
+526
+418
+676
 plot 1
 NIL
 NIL
@@ -708,7 +741,8 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count viruses"
+"Population" 1.0 0 -16777216 true "" "plot count viruses"
+"Mutated" 1.0 0 -8053223 true "" "plot MutationCount"
 
 SWITCH
 9
@@ -729,7 +763,7 @@ CHOOSER
 VirusSequence
 VirusSequence
 [0] [1] [0 1]
-1
+0
 
 SLIDER
 8
@@ -740,7 +774,7 @@ VirusStart
 VirusStart
 1
 100
-9
+2
 1
 1
 Viruses
