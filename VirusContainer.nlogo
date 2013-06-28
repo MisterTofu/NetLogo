@@ -2,21 +2,6 @@
 ;; Author: Travis A. Ebesu
 ;; Description: 
 ;; Notes:
-
-
-
-
-
-
-
-
-
-
-
-;Problem - It doesnt keep all bits if not needed i think... double check on its conversion to binary and stuff
-
-
-
 ;; Initial virus, does not move to another container
 ;; Mutated virus, will only move once to another container
 
@@ -27,9 +12,8 @@ extensions [graphics]
 globals [
   WorldLength             ;; Length to resize world
   GridSize                ;; Size of each grid 
-  GridCount              ;; Total number of grids
+  GridCount               ;; Total number of grids
   
-  VirusMove               ;; Viruses just appear at container once mutated, other way is it takes two ticks to get there
   VirusSequenceLength     ;; Length of virus sequence
   ContainerSequence       ;; Mutation sequence for each container
 
@@ -40,19 +24,22 @@ globals [
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
   DebugReplicate          ;; Output for replication
- 
+  DebugTest
   
-  InfectedColor
-  VirusColor
+  Space                   ;; Space to move within the cell, show diversity
+  
   BackgroundColor 
+  DrawSequenceColor
+  DrawVirusCountColor
+  
+  MutationRate
 ]
 
 breed [viruses virus]
 viruses-own [
   sequence               ;; Virus sequence
-  containerNumber        ;; Virus in current container
+  containerNumber        ;; Current container virus is in
   target                 ;; Coordinates for target container (if applicable)
-  targetContainer        ;; Target container # (if applicable)
 ]
 
 patches-own [
@@ -68,9 +55,6 @@ to setup
   setup-variables
   setup-patches
   setup-viruses VirusStart
-  
-
-  
   reset-ticks
 end
 
@@ -80,7 +64,9 @@ end
 ;;;;;;;;;;;;;;;;;;;;;
 
 to setup-variables
-
+  set DebugTest true
+  
+  if DebugTest [ setup-tests ]
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;
@@ -89,9 +75,8 @@ to setup-variables
   ; GridLengthUI is X by X 
   set WorldLength GridLengthUI
   set GridCount GridLengthUI * GridLengthUI
-
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
-  set InfectedColor RGB 252 244 228
+  
   ifelse GridLengthUI <= 5 [ set-patch-size 35 ] [ set-patch-size 30 ]
   
   
@@ -99,7 +84,7 @@ to setup-variables
   ;; Mutation Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;
       
-  set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
+  set ContainerSequence [ ]                           ;; Needs to be initalized as a list before adding it
   set ContainerInfected [ ]
   set MutationLength length convertBinary GridCount
   set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
@@ -114,16 +99,17 @@ to setup-variables
   ;; Additional Settings ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;
   
-;  set VirusSequence n-values VirusSequenceLength [one-of [0 1]]
-;  set VirusSequence [0]
-;  set-default-shape viruses "dot" 
-  set VirusMove false
   set BackgroundColor rgb 84 84 84
-      ;;;;;;;;;;;;;;;;;;;;;;;
+  set Space 0.38
+  set DrawSequenceColor rgb 255 255 255
+  set DrawVirusCountColor rgb 0 20 148
+  
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;
   ;; Graphics Settings ;;
   ;;;;;;;;;;;;;;;;;;;;;;;
   graphics:initialize  min-pxcor max-pycor patch-size
-  graphics:set-font "monospaced" "Bold" 13
+  graphics:set-font "monoSpaced" "Bold" 13
   graphics:set-fill-color BackgroundColor
 
   ;;;;;;;;;;;;;;;;;;;;
@@ -133,7 +119,6 @@ to setup-variables
   set DebugMutation false
   set DebugReplicate false
 
-  
 end
 
 
@@ -148,7 +133,7 @@ to setup-patches
   let containerX (- WorldLength) + halfGridSize
   let containerY WorldLength - halfGridSize
   let c 0
-  graphics:set-text-color rgb 255 255 255
+  graphics:set-text-color DrawSequenceColor
   ; Iterate over patches, top to bottom, right to left
   while [ y >= (- WorldLength) ] [
       while [ x <= WorldLength ] [
@@ -176,16 +161,13 @@ to setup-patches
      set y y - 1 
      set x (- WorldLength)
   ]
-  if DebugDraw [ 
- 
-    ]
 
 ; ask patches with [ not (pcolor = BackgroundColor)] [ set pcolor lime + 4.2]
 
 end
 
 to drawVirusCounts
-  graphics:set-text-color rgb 0 20 148
+  graphics:set-text-color DrawVirusCountColor
   let i 0
   while [ i < GridCount ] [
       let xy [ ]
@@ -203,15 +185,14 @@ end
 to setup-viruses [ n ]
   repeat n [
      ;;  Virus - sequence, containerNumber, target, targetContainer  
-     let xy getRandomPosition                 ;; Get a random xy position in a container 
+     let xy getPositionInContainer random (GridCount - 1)                 ;; Get a random xy position in a container 
      create-viruses 1 [    
        set size 0.5
-       rt random-float 360
+       rt random 180
        set color red                          ;; Make virus red
        setxy (item 0 xy) (item 1 xy)          ;; Create virus at this xy 
        set containerNumber (item 2 xy)        ;; Set the container number it is infecting
        set target [ ]                         ;; Set an empty list
-       set targetContainer -1                 ;; Set this -1 so we know it doesnt have a target
        set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
        ;; Set our global variable  container as infected
        set ContainerInfected (replace-item containerNumber ContainerInfected true)
@@ -230,15 +211,13 @@ end
 
 to go
   ;; Check for goal states
-  if not any? viruses [ output-print "\n\n-----------No Viruses Left-----------" stop ] 
-  if getInfectedCount = GridCount [ output-print "\n\n-------All Containers Infected-------" stop ]
+  if not any? viruses [ output-print "\n\n--[[ No Viruses Left ]]--" stop ] 
+  if (count viruses) > 50000 [output-print "Max Viruses Stopping" stop ] 
+;  if getInfectedCount = GridCount [ output-print "\n\n--[[ All Containers Infected ]]--" stop ]
+
   
   ;; Kill viruses by probability specified to prevent over population 
   ask viruses [ if random-float 100 < DeathProbability [ die ] ] 
-  
-
-  ;; Move mutated viruses first
-;  ask viruses with [ not (target = [ ]) ] [ move ]
   
   ;; Replicate viruses by probability specified
   ask viruses [ if random-float 100 < ReplicationProbability [ replicate ] ]
@@ -259,7 +238,6 @@ end
 
 
 to replicate     
-
     let parent sequence
     hatch-viruses 1  [ 
          ;; Mutate the parents sequence
@@ -274,49 +252,19 @@ to replicate
          ;; Check for mutation matches
          set target getTargetContainer sequence containerNumber
          
-         ;; We found a mutation, set target and move towards
+         ;; We found a mutation, move to container
          if not (target = [ ]) [   
-           ifelse VirusMove [
-                 facexy (item 0 target) (item 1 target)
-                 fd 1
-            ][   
-                 let space 0.35
-                  setxy ((item 0 target) - random-float space + random-float space) ((item 1 target) - random-float space + random-float space)
-                  set ContainerInfected replace-item (item 2 target) ContainerInfected true 
-                  set containerNumber item 2 target
-                  set target [ ]
-            ]
-             set MutationCount MutationCount + 1
+              setxy ((item 0 target) - random-float Space + random-float Space) ((item 1 target) - random-float Space + random-float Space)
+              set ContainerInfected replace-item (item 2 target) ContainerInfected true 
+              set containerNumber item 2 target
+              set target [ ]                        ;; Reset, children will inherit this otherwise
+              set MutationCount MutationCount + 1   
          ]
     ]
 
 end
 
-to move
 
-    if not (target = [ ]) [ 
-         ;; Virus should not be starting at target cell, moving to it first should be fine
-         facexy item 0 target item 1 target
-         fd 1
-         let cur [ ]
-         
-         ask patch-here [
-             set cur container ; each patch was previously assigned either a cell number or -1
-         ]
-         
-         ;; Check if we are at the destination
-         if cur = targetContainer [
-               ; Arrived at destination
-               let temp targetContainer ; due to context, needed to store in another var
-               ask patches with [ container = temp ] [ ;set pcolor InfectedColor 
-                 set ContainerInfected replace-item container ContainerInfected true ]
-               set containerNumber targetContainer
-               set target [ ]
-               set targetContainer -1
-         ]
-
-    ]
-end
 
 
 to-report mutateSequence [ s ]
@@ -330,39 +278,15 @@ to-report mutateSequence [ s ]
     report s 
 end
 
-; Returns: random (x y) in cell
-to-report getRandomPositionInContainer [ c currentXY]
-  let xy [ ]
-  let coord [ ]
-  let d 0
-  while [ d < 1 ] [
-     set xy [ ]
-     ask patches with [ container = c ] [ 
-         set xy lput (list pxcor pycor) xy 
-     ]
-     set coord one-of xy
-     set d round (getDistance (item 0 coord) (item 1 coord) (item 0 currentXY) (item 1 currentXY))
-  ]
-  report coord
-end
 
 
 
 to-report getPositionInContainer [ c ]
   let temp [ ]     ;; Cant report from non-observer context
    ask patches with [ container = c ] [ 
-     set temp (list pxcor pycor)
+     set temp (list pxcor pycor c)
    ] 
   report temp
-end
-
-; Returns: random (x y container-number)
-to-report getRandomPosition
-  let r random (GridCount - 1)
-  let xy [ ]
-  ask patches with [ container = r ] [ set xy lput (list pxcor pycor r) xy]
-  set r random (length xy - 1)
-  report item r xy
 end
 
 ;; Current Cell #
@@ -378,27 +302,27 @@ to-report getAdjacentContainers [ current ]
   
   if edge != 0 and current > 0 [ ; Do we have a left side avaliable?
     set containerNumbers lput (current - 1) containerNumbers 
-    if debug [ print "Has a left side" ]
+    if debug [ print "Left Adjacent Container Found" ]
   ]     
   if edge != (GridLengthUI - 1) and current < GridCount [  ; check right
     set containerNumbers lput (current + 1) containerNumbers 
-    if debug [print "Has a right side"]
+    if debug [print "Right Adjacent Container Found"]
   ]
  
   if row != 0 [ ; top
     set containerNumbers lput (current - GridLengthUI) containerNumbers 
-    if debug [print "Has top" ]
+    if debug [print "Top Adjacent Container Found" ]
   ]
   if row != (GridLengthUI - 1) [ 
     set containerNumbers lput (current + GridLengthUI) containerNumbers 
-    if debug [print "has bottom" ]
+    if debug [print "Bottom Adjacent Container Found" ]
   ]
   
   report containerNumbers
 end
 
 to-report getTargetContainer [ genome currentContainer ]
-    let adjacentContainers getAdjacentContainers containerNumber          ;; Gets adjacent cell numbers
+    let adjacentContainers getAdjacentContainers currentContainer          ;; Gets adjacent cell numbers
     let accessible getAccessibleContainers genome adjacentContainers    ;; Cross check with mutations
     if not (accessible = [ ]) [  ;; Mutated and can enter another cell
         let selected one-of accessible 
@@ -429,7 +353,7 @@ to-report getAccessibleContainers [ genome containerNumbers ]
            while [ (i + length ?) <= length genome ] [
                ;; We have a match
                if (sublist genome i ( i + length ? )) = ? [
-                    if DebugMutation [ print (word sublist genome i ( i + length ? ) "  ==>  " ?) ]
+                    if DebugMutation [ output-print (word sublist genome i ( i + length ? ) "  ==>  " ?) ]
                     set result lput (item j containerNumbers) result     ;; add container number result
                     set i i + length genome                              ;; exit while loop
                ]
@@ -443,13 +367,7 @@ end
 
 
 
-to-report getDistance [x1 y1 x2 y2]
-  report round sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
-end
 
-to-report getSquare [n]
-  report n * n 
-end
 
 ; Convert base 10 to binary 
 to-report convertBinary [ num ]
@@ -472,7 +390,6 @@ to-report convertDecimal [ num ]
       ]
       set i i + 1
   ]
-  
   report total
 end
 
@@ -484,6 +401,14 @@ to-report getInfectedCount
   report total
 end
 
+to-report getDistance [x1 y1 x2 y2]
+  report round sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
+end
+
+to-report getSquare [n]
+  report n * n 
+end
+
 ;; b ^ n
 to-report pow [ b n ]
   if n = 0 [ report 1 ]
@@ -492,43 +417,123 @@ to-report pow [ b n ]
 end
 
 
-;; Only called manually 
-to testMutate
-let i false
-while [ not i ] [
-ask viruses [
-        let parent sequence
-         set sequence (mutateSequence parent)
-        if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
-         let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
-         
-         ifelse not (targetList = [ ]) [ 
-             set targetContainer one-of targetList ; targetList may return one or more elements, take one
-             set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
-             facexy item 0 target item 1 target
-             fd 1
-             set i true
-
-         ][
-             let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
-             facexy item 0 coord item 1 coord  
-             fd 1
-         ]
-]
-]
+to setup-tests
+  set DeathProbability 0
+  set VirusStart 1
+  set ReplicationProbability 100
+  output-print (word "Dont forget to disable all containers infected stop\nInfected Compartments now displays successful mutation")
+  set DebugMutation true
 end
-to testSequenceLength
-    repeat 20 [
-      foreach ContainerSequence [ if not (length ? = MutationLength) [ print "\n\n---Huston we got a problem---\n\n" stop ] ]
-      set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
-      print "No Error so far, reshuffling sequence"
-      let i 0
-      while [ i < GridCount ] [
-          set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
-          set i i + 1
-      ]
+
+to testMutation
+
+  if count viruses > 1 [
+       set MutationRate (MutationCount / (count viruses - 1)) * 100
   ]
 end
+
+;; only mutates parental genome over and over again
+;to testMutation [ n ]
+;  let parent n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
+;  let genome n-values MutationLength [one-of [0 1]]
+;  repeat n [
+;  
+;         ;; Mutate the parents sequence
+;     let mSequence (mutateSequence parent)
+;
+;     print (word "G: "genome "\nM: " mSequence "\n");print (word "Parent: " parent "  ==>  " mSequence) 
+;     let i 0
+;
+;       while [ (i + length mSequence) <= length genome ] [
+;               ;; We have a match
+;               if (sublist genome i ( i + length mSequence )) = mSequence [
+;                    output-print (word "G: "sublist genome i ( i + length mSequence ) "\nM: " mSequence)
+;                    set MutationCount MutationCount + 1
+;                    set i i + length genome                              ;; exit while loop
+;               ]
+;               set i i + 1 
+;           ]
+; ]
+;
+;end
+;; Only called manually 
+;to testMutate
+;let i false
+;while [ not i ] [
+;ask viruses [
+;        let parent sequence
+;         set sequence (mutateSequence parent)
+;        if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
+;         let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
+;         
+;         ifelse not (targetList = [ ]) [ 
+;             set targetContainer one-of targetList ; targetList may return one or more elements, take one
+;             set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
+;             facexy item 0 target item 1 target
+;             fd 1
+;             set i true
+;
+;         ][
+;             let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
+;             facexy item 0 coord item 1 coord  
+;             fd 1
+;         ]
+;]
+;]
+;end
+;to testSequenceLength
+;    repeat 20 [
+;      foreach ContainerSequence [ if not (length ? = MutationLength) [ print "\n\n---Huston we got a problem---\n\n" stop ] ]
+;      set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
+;      print "No Error so far, reshuffling sequence"
+;      let i 0
+;      while [ i < GridCount ] [
+;          set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
+;          set i i + 1
+;      ]
+;  ]
+;end
+
+;; Returns: random (x y) in cell
+;to-report getRandomPositionInContainer [ c currentXY]
+;  let xy [ ]
+;  let coord [ ]
+;  let d 0
+;  while [ d < 1 ] [
+;     set xy [ ]
+;     ask patches with [ container = c ] [ 
+;         set xy lput (list pxcor pycor) xy 
+;     ]
+;     set coord one-of xy
+;     set d round (getDistance (item 0 coord) (item 1 coord) (item 0 currentXY) (item 1 currentXY))
+;  ]
+;  report coord
+;end
+;to move
+;
+;    if not (target = [ ]) [ 
+;         ;; Virus should not be starting at target cell, moving to it first should be fine
+;         facexy item 0 target item 1 target
+;         fd 1
+;         let cur [ ]
+;         
+;         ask patch-here [
+;             set cur container ; each patch was previously assigned either a cell number or -1
+;         ]
+;         
+;         ;; Check if we are at the destination
+;         if cur = targetContainer [
+;               ; Arrived at destination
+;               let temp targetContainer ; due to context, needed to store in another var
+;               ask patches with [ container = temp ] [ ;set pcolor InfectedColor 
+;                 set ContainerInfected replace-item container ContainerInfected true ]
+;               set containerNumber targetContainer
+;               set target [ ]
+;               set targetContainer -1
+;         ]
+;
+;    ]
+;end
 @#$#@#$#@
 GRAPHICS-WINDOW
 313
@@ -615,7 +620,7 @@ DeathProbability
 DeathProbability
 0
 100
-6
+0
 1
 1
 %
@@ -630,7 +635,7 @@ MutationProbability
 MutationProbability
 0
 100
-23
+6
 1
 1
 % per a base
@@ -656,7 +661,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-15
+100
 1
 1
 %
@@ -697,10 +702,10 @@ NIL
 1
 
 OUTPUT
-6
-427
-291
-499
+11
+482
+571
+609
 12
 
 MONITOR
@@ -726,10 +731,10 @@ MutationCount
 11
 
 PLOT
-218
-526
-418
-676
+933
+11
+1133
+161
 plot 1
 NIL
 NIL
@@ -756,14 +761,14 @@ DebugDraw
 -1000
 
 CHOOSER
-8
-562
-125
-607
+9
+46
+123
+91
 VirusSequence
 VirusSequence
 [0] [1] [0 1]
-0
+2
 
 SLIDER
 8
@@ -774,11 +779,22 @@ VirusStart
 VirusStart
 1
 100
-2
+1
 1
 1
 Viruses
 HORIZONTAL
+
+MONITOR
+153
+365
+262
+410
+Mutation Rate %
+MutationCount / count viruses * 100
+4
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
