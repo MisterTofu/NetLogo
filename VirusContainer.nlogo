@@ -13,7 +13,7 @@ globals [
   WorldLength             ;; Length to resize world
   GridSize                ;; Size of each grid 
   GridCount               ;; Total number of grids
-  
+  VirusSequence
   VirusSequenceLength     ;; Length of virus sequence
   ContainerSequence       ;; Mutation sequence for each container
 
@@ -24,15 +24,14 @@ globals [
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
   DebugReplicate          ;; Output for replication
-  DebugTest
+  DebugTest               ;; 
   
   Space                   ;; Space to move within the cell, show diversity
   
-  BackgroundColor 
-  DrawSequenceColor
-  DrawVirusCountColor
+  BackgroundColor         ;; Set the background color
+  DrawSequenceColor       ;; Color of sequence drawn eg 0 1 0
+  DrawVirusCountColor     ;; Color of number of viruses drawn 
   
-  MutationRate
 ]
 
 breed [viruses virus]
@@ -64,9 +63,10 @@ end
 ;;;;;;;;;;;;;;;;;;;;;
 
 to setup-variables
-  set DebugTest true
-  
+  set DebugTest false
+  set VirusSequence [0]
   if DebugTest [ setup-tests ]
+  
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;
@@ -172,6 +172,7 @@ to drawVirusCounts
   while [ i < GridCount ] [
       let xy [ ]
       ask patches with [container = i] [ set xy (list pxcor pycor) ]
+      ;clear-drawing       could be used but I would need to redraw the container sequences
       graphics:fill-rectangle (item 0 xy - 0.9 )  (item 1 xy + 1.4) 2 0.5
       graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word count viruses-on patches with [container = i])
       set i i + 1
@@ -236,7 +237,7 @@ end
 
 
 
-
+;; Reproduces and mutates its current sequence
 to replicate     
     let parent sequence
     hatch-viruses 1  [ 
@@ -254,6 +255,7 @@ to replicate
          
          ;; We found a mutation, move to container
          if not (target = [ ]) [   
+             ;; Move to container, make it infected
               setxy ((item 0 target) - random-float Space + random-float Space) ((item 1 target) - random-float Space + random-float Space)
               set ContainerInfected replace-item (item 2 target) ContainerInfected true 
               set containerNumber item 2 target
@@ -266,7 +268,8 @@ end
 
 
 
-
+;; Input: sequence list of 0s and/or 1s
+;; Returns: the mutated sequence
 to-report mutateSequence [ s ]
     let i 0
     while [ i < length s ] [
@@ -278,9 +281,8 @@ to-report mutateSequence [ s ]
     report s 
 end
 
-
-
-
+;; Input: container number 0 - (n - 1)
+;; Returns: XY of the container and the container asked for
 to-report getPositionInContainer [ c ]
   let temp [ ]     ;; Cant report from non-observer context
    ask patches with [ container = c ] [ 
@@ -289,7 +291,8 @@ to-report getPositionInContainer [ c ]
   report temp
 end
 
-;; Current Cell #
+;; Input: Container Number
+;; Returns: A list of container numbers that are immediately adjacent to the cell
 to-report getAdjacentContainers [ current ]
   let containerNumbers [ ]
   let result [ ]
@@ -369,7 +372,8 @@ end
 
 
 
-; Convert base 10 to binary 
+;; Input: number
+;; Returns: a list the number equivalent in binary 
 to-report convertBinary [ num ]
   let k 2 ; change k to convert to different bases
   let digit [ ]
@@ -381,6 +385,8 @@ to-report convertBinary [ num ]
   report digit
 end
 
+;; Input: list of binary
+;; Returns: the converted number in base 10
 to-report convertDecimal [ num ]
   let i 0
   let total 0
@@ -393,6 +399,8 @@ to-report convertDecimal [ num ]
   report total
 end
 
+;; Input: N/A
+;; Returns: # of containers infected
 to-report getInfectedCount
   let total 0
   foreach ContainerInfected [
@@ -401,15 +409,20 @@ to-report getInfectedCount
   report total
 end
 
+;; Input: xy1 xy2
+;; Returns: distance between the two points
 to-report getDistance [x1 y1 x2 y2]
   report round sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
 end
 
+;; Input: number
+;; Returns: number^2
 to-report getSquare [n]
   report n * n 
 end
 
-;; b ^ n
+;; Input: base number
+;; Returns: base raised to the nth
 to-report pow [ b n ]
   if n = 0 [ report 1 ]
   if n = 1 [ report b ] 
@@ -417,6 +430,7 @@ to-report pow [ b n ]
 end
 
 
+;; Only to setup for some experimental testing... 
 to setup-tests
   set DeathProbability 0
   set VirusStart 1
@@ -425,12 +439,6 @@ to setup-tests
   set DebugMutation true
 end
 
-to testMutation
-
-  if count viruses > 1 [
-       set MutationRate (MutationCount / (count viruses - 1)) * 100
-  ]
-end
 
 ;; only mutates parental genome over and over again
 ;to testMutation [ n ]
@@ -538,10 +546,10 @@ end
 GRAPHICS-WINDOW
 313
 11
-638
-357
-4
-4
+558
+217
+2
+2
 35.0
 1
 9
@@ -552,10 +560,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--4
-4
--4
-4
+-2
+2
+-2
+2
 0
 0
 1
@@ -588,7 +596,7 @@ GridLengthUI
 GridLengthUI
 2
 8
-4
+2
 1
 1
  by X
@@ -756,19 +764,9 @@ SWITCH
 43
 DebugDraw
 DebugDraw
-0
+1
 1
 -1000
-
-CHOOSER
-9
-46
-123
-91
-VirusSequence
-VirusSequence
-[0] [1] [0 1]
-2
 
 SLIDER
 8
@@ -1143,6 +1141,30 @@ NetLogo 5.0.4
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count viruses</metric>
+    <metric>getInfectedCount</metric>
+    <enumeratedValueSet variable="VirusStart">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="GridLengthUI" first="2" step="1" last="8"/>
+    <enumeratedValueSet variable="DeathProbability">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MutationProbability">
+      <value value="6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DebugDraw">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ReplicationProbability">
+      <value value="100"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
