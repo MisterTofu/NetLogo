@@ -32,6 +32,8 @@ globals [
   DrawSequenceColor       ;; Color of sequence drawn eg 0 1 0
   DrawVirusCountColor     ;; Color of number of viruses drawn 
   
+  ;;Plotting Vars
+  P1
 ]
 
 breed [viruses virus]
@@ -50,11 +52,13 @@ patches-own [
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to setup
-  ca
+  clear-all
+
+  reset-ticks
   setup-variables
   setup-patches
   setup-viruses VirusStart
-  reset-ticks
+  set-histogram-num-bars 5
 end
 
 
@@ -205,12 +209,13 @@ to setup-viruses [ n ]
   if DebugDraw [ drawVirusCounts ]
 end
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   Go   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
+  set-histogram-num-bars (MutationLength + 1)
+  set-plot-x-range 0 (MutationLength + 1)
   ;; Check for goal states
   if not any? viruses [ output-print "\n\n--[[ No Viruses Left ]]--" stop ] 
   if (count viruses) > 50000 [output-print "Max Viruses Stopping" stop ] 
@@ -430,6 +435,16 @@ to-report pow [ b n ]
 end
 
 
+
+to-report getDiversitySequence [ pos match ]
+  let i 0
+  foreach [item pos sequence] of viruses [
+       if ? = match [ set i i + 1 ]
+  ]
+  report i
+end
+  
+  
 ;; Only to setup for some experimental testing... 
 to setup-tests
   set DeathProbability 0
@@ -439,6 +454,25 @@ to setup-tests
   set DebugMutation true
 end
 
+to-report frequency [val thelist]
+  report length filter [? = val] thelist
+end
+
+to-report diversity
+  let result [ ]
+  ;; Works only if starts at 0 or 1 not both
+  let start n-values VirusSequenceLength [one-of VirusSequence]
+  ask viruses [ set result lput hammingDistance start sequence result ]
+  report result
+end
+
+
+to-report hammingDistance [sequence1 sequence2]
+  if length sequence1 = length sequence2 [ 
+      report (length remove true (map [?1 = ?2] sequence1 sequence2))
+  ]
+  report false
+end
 
 ;; only mutates parental genome over and over again
 ;to testMutation [ n ]
@@ -546,10 +580,10 @@ end
 GRAPHICS-WINDOW
 313
 11
-558
-217
-2
-2
+638
+357
+4
+4
 35.0
 1
 9
@@ -560,10 +594,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--2
-2
--2
-2
+-4
+4
+-4
+4
 0
 0
 1
@@ -596,7 +630,7 @@ GridLengthUI
 GridLengthUI
 2
 8
-2
+4
 1
 1
  by X
@@ -739,10 +773,10 @@ MutationCount
 11
 
 PLOT
-933
-11
-1133
-161
+684
+45
+884
+195
 plot 1
 NIL
 NIL
@@ -793,6 +827,42 @@ MutationCount / count viruses * 100
 4
 1
 11
+
+PLOT
+687
+216
+887
+366
+plot 2
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"set p1 1" "set p1 getDiversitySequence 0 1"
+PENS
+"default" 1.0 1 -16777216 true "" "plot p1"
+
+PLOT
+636
+389
+836
+539
+Genetic Diversity
+Hamming Distance
+Viruses
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram diversity"
 
 @#$#@#$#@
 ## WHAT IS IT?
