@@ -458,6 +458,39 @@ to-report frequency [val thelist]
   report length filter [? = val] thelist
 end
 
+to-report getDiversityCount
+    let div diversity
+    let i 0
+    let result [ ]
+    while [ i < (MutationLength + 1) ] [
+        set result lput countNDiversity i div result
+        set i i + 1
+    ]
+    report result
+end
+
+to-report countNDiversity [ n divList ]
+  ifelse not (n = 0) [    
+      let i 0
+      while [ i < n ] [
+          set divList remove i divList
+          set i i + 1
+      ]
+      set i n + 1
+      while [ i < (MutationLength + 1) ] [
+          set divList remove i divList
+          set i i + 1
+      ]
+  ][
+      let i 1
+      while [ i < (MutationLength + 1) ] [
+          set divList remove i divList
+          set i i + 1
+      ]
+  ]
+  report length divList
+end
+
 to-report diversity
   let result [ ]
   ;; Works only if starts at 0 or 1 not both
@@ -473,109 +506,6 @@ to-report hammingDistance [sequence1 sequence2]
   ]
   report false
 end
-
-;; only mutates parental genome over and over again
-;to testMutation [ n ]
-;  let parent n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
-;  let genome n-values MutationLength [one-of [0 1]]
-;  repeat n [
-;  
-;         ;; Mutate the parents sequence
-;     let mSequence (mutateSequence parent)
-;
-;     print (word "G: "genome "\nM: " mSequence "\n");print (word "Parent: " parent "  ==>  " mSequence) 
-;     let i 0
-;
-;       while [ (i + length mSequence) <= length genome ] [
-;               ;; We have a match
-;               if (sublist genome i ( i + length mSequence )) = mSequence [
-;                    output-print (word "G: "sublist genome i ( i + length mSequence ) "\nM: " mSequence)
-;                    set MutationCount MutationCount + 1
-;                    set i i + length genome                              ;; exit while loop
-;               ]
-;               set i i + 1 
-;           ]
-; ]
-;
-;end
-;; Only called manually 
-;to testMutate
-;let i false
-;while [ not i ] [
-;ask viruses [
-;        let parent sequence
-;         set sequence (mutateSequence parent)
-;        if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]
-;         let targetList getAccessibleContainers sequence (getAdjacentContainers containerNumber)
-;         
-;         ifelse not (targetList = [ ]) [ 
-;             set targetContainer one-of targetList ; targetList may return one or more elements, take one
-;             set target getRandomPositionInContainer targetContainer (list pxcor pycor) ; get a coordinate in the container
-;             facexy item 0 target item 1 target
-;             fd 1
-;             set i true
-;
-;         ][
-;             let coord getRandomPositionInContainer containerNumber (list pxcor pycor)   ; Gets a coordinate within the cell
-;             facexy item 0 coord item 1 coord  
-;             fd 1
-;         ]
-;]
-;]
-;end
-;to testSequenceLength
-;    repeat 20 [
-;      foreach ContainerSequence [ if not (length ? = MutationLength) [ print "\n\n---Huston we got a problem---\n\n" stop ] ]
-;      set ContainerSequence [ ] ; Needs to be initalized as a list before adding it
-;      print "No Error so far, reshuffling sequence"
-;      let i 0
-;      while [ i < GridCount ] [
-;          set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
-;          set i i + 1
-;      ]
-;  ]
-;end
-
-;; Returns: random (x y) in cell
-;to-report getRandomPositionInContainer [ c currentXY]
-;  let xy [ ]
-;  let coord [ ]
-;  let d 0
-;  while [ d < 1 ] [
-;     set xy [ ]
-;     ask patches with [ container = c ] [ 
-;         set xy lput (list pxcor pycor) xy 
-;     ]
-;     set coord one-of xy
-;     set d round (getDistance (item 0 coord) (item 1 coord) (item 0 currentXY) (item 1 currentXY))
-;  ]
-;  report coord
-;end
-;to move
-;
-;    if not (target = [ ]) [ 
-;         ;; Virus should not be starting at target cell, moving to it first should be fine
-;         facexy item 0 target item 1 target
-;         fd 1
-;         let cur [ ]
-;         
-;         ask patch-here [
-;             set cur container ; each patch was previously assigned either a cell number or -1
-;         ]
-;         
-;         ;; Check if we are at the destination
-;         if cur = targetContainer [
-;               ; Arrived at destination
-;               let temp targetContainer ; due to context, needed to store in another var
-;               ask patches with [ container = temp ] [ ;set pcolor InfectedColor 
-;                 set ContainerInfected replace-item container ContainerInfected true ]
-;               set containerNumber targetContainer
-;               set target [ ]
-;               set targetContainer -1
-;         ]
-;
-;    ]
-;end
 @#$#@#$#@
 GRAPHICS-WINDOW
 313
@@ -773,10 +703,10 @@ MutationCount
 11
 
 PLOT
-684
-45
-884
-195
+911
+54
+1111
+204
 plot 1
 NIL
 NIL
@@ -798,7 +728,7 @@ SWITCH
 43
 DebugDraw
 DebugDraw
-1
+0
 1
 -1000
 
@@ -829,28 +759,10 @@ MutationCount / count viruses * 100
 11
 
 PLOT
-687
-216
-887
-366
-plot 2
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"set p1 1" "set p1 getDiversitySequence 0 1"
-PENS
-"default" 1.0 1 -16777216 true "" "plot p1"
-
-PLOT
-636
-389
-836
-539
+909
+241
+1109
+391
 Genetic Diversity
 Hamming Distance
 Viruses
