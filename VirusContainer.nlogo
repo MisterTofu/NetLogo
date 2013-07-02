@@ -423,12 +423,11 @@ end
 ;; Input: N/A
 ;; Returns: # of containers infected
 to-report getInfectedCount
-  let total 0
-  let temp remove false ContainerInfected
-  foreach temp [
-        if any? viruses with [pxcor = item 0 ?  and pycor = item 1 ? and any? viruses-on viruses-here] [
-            set total total + 1
-        ]
+  let total 0  
+  let i 0
+  while [ i < GridCount ] [ 
+      if any? viruses-on patches with [container = i] [ set total total + 1 ]
+      set i i + 1
   ]
   report total
 end
