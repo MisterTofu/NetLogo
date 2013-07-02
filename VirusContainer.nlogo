@@ -61,8 +61,9 @@ to setup
   setup-patches
   setup-viruses VirusStart
   
-   set Diversity getDiversity
-;  set-histogram-num-bars VirusSequenceLength + 1
+  set Diversity getDiversity
+  set-histogram-num-bars VirusSequenceLength
+  set-plot-x-range 0 VirusSequenceLength
 end
 
 
@@ -522,12 +523,12 @@ to-report hammingDistance [sequence1 sequence2]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-313
-11
-568
-287
-3
-3
+242
+10
+567
+356
+4
+4
 35.0
 1
 9
@@ -538,10 +539,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--3
-3
--3
-3
+-4
+4
+-4
+4
 0
 0
 1
@@ -549,9 +550,9 @@ ticks
 30.0
 
 BUTTON
-222
+157
 10
-288
+220
 43
 NIL
 setup\n
@@ -566,25 +567,25 @@ NIL
 1
 
 SLIDER
-7
-134
-227
-167
+5
+89
+221
+122
 GridLengthUI
 GridLengthUI
 2
 8
-3
+4
 1
 1
  by X
 HORIZONTAL
 
 BUTTON
-222
-55
-285
-88
+157
+48
+220
+81
 NIL
 go
 T
@@ -598,10 +599,10 @@ NIL
 1
 
 SLIDER
-8
-178
-227
-211
+5
+128
+221
+161
 DeathProbability
 DeathProbability
 0
@@ -613,36 +614,36 @@ DeathProbability
 HORIZONTAL
 
 SLIDER
-8
-219
-228
-252
+5
+245
+221
+278
 MutationProbability
 MutationProbability
 1
 100
-24
+5
 1
 1
 % per a base
 HORIZONTAL
 
 MONITOR
-15
-305
-102
-350
-# of Viruses
+5
+330
+99
+375
+Viruses
 count viruses
 0
 1
 11
 
 SLIDER
-10
-261
-208
-294
+5
+167
+221
+200
 ReplicationProbability
 ReplicationProbability
 0
@@ -654,10 +655,10 @@ ReplicationProbability
 HORIZONTAL
 
 BUTTON
-138
-10
-208
-43
+6
+288
+79
+321
 Go * 2
 go go
 NIL
@@ -671,10 +672,10 @@ NIL
 1
 
 BUTTON
-139
-55
-209
-88
+138
+287
+211
+320
 Go * 1
 go
 NIL
@@ -688,17 +689,17 @@ NIL
 1
 
 OUTPUT
-11
-482
-571
-609
+234
+384
+794
+556
 12
 
 MONITOR
-113
-305
-254
-350
+9
+432
+144
+477
 Infected Compartments
 getInfectedCount
 0
@@ -706,10 +707,10 @@ getInfectedCount
 11
 
 MONITOR
-17
-364
-126
-409
+6
+383
+100
+428
 Mutation Count
 MutationCount
 2
@@ -717,28 +718,28 @@ MutationCount
 11
 
 PLOT
-911
-54
-1111
-204
-plot 1
-NIL
-NIL
+796
+28
+1117
+199
+Population
+Time
+Viruses
 0.0
 10.0
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
 "Population" 1.0 0 -16777216 true "" "plot count viruses"
 "Mutated" 1.0 0 -8053223 true "" "plot MutationCount"
 
 SWITCH
-9
+5
 10
-123
+140
 43
 DebugDraw
 DebugDraw
@@ -747,10 +748,10 @@ DebugDraw
 -1000
 
 SLIDER
-8
-93
-180
-126
+5
+48
+141
+81
 VirusStart
 VirusStart
 1
@@ -762,10 +763,10 @@ Viruses
 HORIZONTAL
 
 MONITOR
-153
-365
-262
-410
+104
+330
+222
+375
 Mutation Rate %
 MutationCount / count viruses * 100
 4
@@ -773,10 +774,10 @@ MutationCount / count viruses * 100
 11
 
 PLOT
-909
-241
-1109
-391
+797
+208
+1119
+376
 Genetic Diversity
 Hamming Distance
 Viruses
@@ -791,15 +792,15 @@ PENS
 "default" 1.0 1 -16777216 true "" "histogram Diversity"
 
 SLIDER
-372
-410
-585
-443
+5
+206
+222
+239
 VirusSequenceLength
 VirusSequenceLength
 4
 100
-15
+11
 1
 1
 bits
