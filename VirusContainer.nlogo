@@ -5,8 +5,6 @@
 ;; Initial virus, does not move to another container
 ;; Mutated virus, will only move once to another container
 
-
-
 extensions [graphics]
 
 globals [
@@ -14,12 +12,14 @@ globals [
   GridSize                ;; Size of each grid 
   GridCount               ;; Total number of grids
   VirusSequence
-  VirusSequenceLength     ;; Length of virus sequence
+  
   ContainerSequence       ;; Mutation sequence for each container
 
   ContainerInfected       ;; Tracks infected containers 
   MutationLength          ;; Length of mutation of each container
   MutationCount           ;; Count of useable mutations
+  Diversity
+  
   
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
@@ -31,6 +31,7 @@ globals [
   BackgroundColor         ;; Set the background color
   DrawSequenceColor       ;; Color of sequence drawn eg 0 1 0
   DrawVirusCountColor     ;; Color of number of viruses drawn 
+  
   
   ;;Plotting Vars
   P1
@@ -53,12 +54,15 @@ patches-own [
 
 to setup
   clear-all
-
+  set Diversity [0]      ; used for graphing... throws an error
   reset-ticks
+;  no-display
   setup-variables
   setup-patches
   setup-viruses VirusStart
-  set-histogram-num-bars 5
+  
+   set Diversity getDiversity
+;  set-histogram-num-bars VirusSequenceLength + 1
 end
 
 
@@ -91,7 +95,7 @@ to setup-variables
   set ContainerSequence [ ]                           ;; Needs to be initalized as a list before adding it
   set ContainerInfected [ ]
   set MutationLength length convertBinary GridCount
-  set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
+;  set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
   let i 0
   while [ i < GridCount ] [
       set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
@@ -120,7 +124,7 @@ to setup-variables
   ;; Debug Settings ;;
   ;;;;;;;;;;;;;;;;;;;;
   set Debug false
-  set DebugMutation false
+  set DebugMutation true
   set DebugReplicate false
 
 end
@@ -200,9 +204,9 @@ to setup-viruses [ n ]
        set target [ ]                         ;; Set an empty list
        set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
        ;; Set our global variable  container as infected
-       set ContainerInfected (replace-item containerNumber ContainerInfected true)
+       set ContainerInfected (replace-item containerNumber ContainerInfected (list item 0 xy item 1 xy))
        ;; Outputting Viruses, Starting container and sequence
-       output-print (word "Virus => " containerNumber "  ==>  " sequence )
+;       output-print (word "Virus => " containerNumber "  ==>  " sequence )
      ]
   ]
   
@@ -214,12 +218,12 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
-  set-histogram-num-bars (MutationLength + 1)
-  set-plot-x-range 0 (MutationLength + 1)
+;  set-histogram-num-bars (MutationLength + 1)
+;  set-plot-x-range 0 (MutationLength + 1)
   ;; Check for goal states
   if not any? viruses [ output-print "\n\n--[[ No Viruses Left ]]--" stop ] 
-  if (count viruses) > 50000 [output-print "Max Viruses Stopping" stop ] 
-;  if getInfectedCount = GridCount [ output-print "\n\n--[[ All Containers Infected ]]--" stop ]
+;  if (count viruses) > 50000 [output-print "Max Viruses Stopping" stop ] 
+
 
   
   ;; Kill viruses by probability specified to prevent over population 
@@ -227,7 +231,9 @@ to go
   
   ;; Replicate viruses by probability specified
   ask viruses [ if random-float 100 < ReplicationProbability [ replicate ] ]
+  set Diversity getDiversity
   if DebugDraw [ drawVirusCounts ]
+  if getInfectedCount = GridCount [ output-print "\n\n--[[ All Containers Infected ]]--" stop ]
   tick
 end
 
@@ -251,7 +257,7 @@ to replicate
          rt random-float 360
          ;; Color viruses by mutation - Binary is converted to decimal to use it as offset
          ;; This requires adjustment based on world size
-          set color scale-color red (convertDecimal sequence) (GridCount * 2) 0
+;          set color scale-color red (convertDecimal sequence) (GridCount * 2) 0
          
          if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]   ;; debug print parent & mutation
          
@@ -262,7 +268,7 @@ to replicate
          if not (target = [ ]) [   
              ;; Move to container, make it infected
               setxy ((item 0 target) - random-float Space + random-float Space) ((item 1 target) - random-float Space + random-float Space)
-              set ContainerInfected replace-item (item 2 target) ContainerInfected true 
+              set ContainerInfected replace-item (item 2 target) ContainerInfected (list item 0 target item 1 target) 
               set containerNumber item 2 target
               set target [ ]                        ;; Reset, children will inherit this otherwise
               set MutationCount MutationCount + 1   
@@ -278,7 +284,7 @@ end
 to-report mutateSequence [ s ]
     let i 0
     while [ i < length s ] [
-        if random-float  100 > MutationProbability [
+        if random-float  100 < MutationProbability [
             set s replace-item i s one-of [0 1]
         ]
         set i i + 1
@@ -350,7 +356,7 @@ to-report getAccessibleContainers [ genome containerNumbers ]
   foreach containerNumbers [ set mutation lput item ? ContainerSequence mutation ]
 
  ;; Debug Information 
- if DebugMutation [ print (word "Mutation: " mutation "\nTesting: Genome  =>  Mutation \n\n")]
+ if DebugMutation [ output-print (word "Genome: " genome " ==> Checking Containers: " containerNumbers)]
  
  let j 0 ;; using it as a for loop with foreach
  foreach mutation [
@@ -359,9 +365,13 @@ to-report getAccessibleContainers [ genome containerNumbers ]
            let i 0
            ;; Compare every bit
            while [ (i + length ?) <= length genome ] [
-               ;; We have a match
-               if (sublist genome i ( i + length ? )) = ? [
-                    if DebugMutation [ output-print (word sublist genome i ( i + length ? ) "  ==>  " ?) ]
+               
+               if (sublist genome i ( i + length ? )) = ? [ ;; We have a match
+                    if DebugMutation [ 
+                          let offset " " 
+                          repeat (i + 7) [ set offset (word offset " ") ] 
+                          output-print (word offset ?"  <=== Container " item j containerNumbers) 
+                     ]
                     set result lput (item j containerNumbers) result     ;; add container number result
                     set i i + length genome                              ;; exit while loop
                ]
@@ -370,6 +380,7 @@ to-report getAccessibleContainers [ genome containerNumbers ]
            set j j + 1
       ]
   ]   
+  output-print "\n==========================================================================="
   report result
 end
 
@@ -408,8 +419,11 @@ end
 ;; Returns: # of containers infected
 to-report getInfectedCount
   let total 0
-  foreach ContainerInfected [
-      if ? [ set total total + 1 ]
+  let temp remove false ContainerInfected
+  foreach temp [
+        if any? viruses with [pxcor = item 0 ?  and pycor = item 1 ? and any? viruses-on viruses-here] [
+            set total total + 1
+        ]
   ]
   report total
 end
@@ -491,7 +505,7 @@ to-report countNDiversity [ n divList ]
   report length divList
 end
 
-to-report diversity
+to-report getDiversity
   let result [ ]
   ;; Works only if starts at 0 or 1 not both
   let start n-values VirusSequenceLength [one-of VirusSequence]
@@ -510,10 +524,10 @@ end
 GRAPHICS-WINDOW
 313
 11
-638
-357
-4
-4
+568
+287
+3
+3
 35.0
 1
 9
@@ -524,10 +538,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--4
-4
--4
-4
+-3
+3
+-3
+3
 0
 0
 1
@@ -560,7 +574,7 @@ GridLengthUI
 GridLengthUI
 2
 8
-4
+3
 1
 1
  by X
@@ -592,7 +606,7 @@ DeathProbability
 DeathProbability
 0
 100
-0
+5
 1
 1
 %
@@ -605,9 +619,9 @@ SLIDER
 252
 MutationProbability
 MutationProbability
-0
+1
 100
-6
+24
 1
 1
 % per a base
@@ -633,7 +647,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-100
+50
 1
 1
 %
@@ -774,7 +788,22 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "" "histogram diversity"
+"default" 1.0 1 -16777216 true "" "histogram Diversity"
+
+SLIDER
+372
+410
+585
+443
+VirusSequenceLength
+VirusSequenceLength
+4
+100
+15
+1
+1
+bits
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1124,26 +1153,79 @@ NetLogo 5.0.4
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="experiment1" repetitions="1" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
+    <timeLimit steps="75"/>
     <metric>count viruses</metric>
     <metric>getInfectedCount</metric>
+    <metric>MutationCount</metric>
+    <metric>countNDiversity 0 diversity</metric>
+    <metric>countNDiversity 1 diversity</metric>
+    <metric>countNDiversity 2 diversity</metric>
+    <metric>countNDiversity 3 diversity</metric>
     <enumeratedValueSet variable="VirusStart">
       <value value="1"/>
     </enumeratedValueSet>
-    <steppedValueSet variable="GridLengthUI" first="2" step="1" last="8"/>
-    <enumeratedValueSet variable="DeathProbability">
-      <value value="0"/>
+    <enumeratedValueSet variable="GridLengthUI">
+      <value value="3"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="MutationProbability">
-      <value value="6"/>
-    </enumeratedValueSet>
+    <steppedValueSet variable="DeathProbability" first="5" step="1" last="10"/>
+    <steppedValueSet variable="MutationProbability" first="5" step="1" last="10"/>
     <enumeratedValueSet variable="DebugDraw">
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="ReplicationProbability">
+      <value value="50"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="3x3_0_5_100__20times" repetitions="20" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count viruses</metric>
+    <metric>MutationCount</metric>
+    <metric>getInfectedCount</metric>
+    <enumeratedValueSet variable="MutationProbability">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="GridLengthUI">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ReplicationProbability">
       <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="VirusStart">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DebugDraw">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DeathProbability">
+      <value value="0"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment2" repetitions="10" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="20000"/>
+    <metric>count viruses</metric>
+    <metric>MutationCount</metric>
+    <metric>getInfectedCount</metric>
+    <steppedValueSet variable="MutationProbability" first="0" step="5" last="30"/>
+    <enumeratedValueSet variable="GridLengthUI">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ReplicationProbability">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="VirusStart">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DebugDraw">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DeathProbability">
+      <value value="0"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
