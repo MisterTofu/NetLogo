@@ -389,6 +389,9 @@ to-report getAccessibleContainers [ genome containerNumbers ]
   report result
 end
 
+;let seq [ ]
+
+
 
 
 
@@ -413,7 +416,7 @@ to-report convertDecimal [ num ]
   let total 0
   while [ i < length num ] [
       if item i num = 1 [
-          set total total + pow 2 i
+          set total total +  2 ^ i
       ]
       set i i + 1
   ]
@@ -435,24 +438,8 @@ end
 ;; Input: xy1 xy2
 ;; Returns: distance between the two points
 to-report getDistance [x1 y1 x2 y2]
-  report round sqrt ( getSquare (x2 - x1) + getSquare (y2 - y1) )
+  report round sqrt (  (x2 - x1) ^ 2 +  (y2 - y1) ^ 2 )
 end
-
-;; Input: number
-;; Returns: number^2
-to-report getSquare [n]
-  report n * n 
-end
-
-;; Input: base number
-;; Returns: base raised to the nth
-to-report pow [ b n ]
-  if n = 0 [ report 1 ]
-  if n = 1 [ report b ] 
-  report b * pow b (n - 1)
-end
-
-
 
 to-report getDiversitySequence [ pos match ]
   let i 0
@@ -509,6 +496,14 @@ to-report countNDiversity [ n divList ]
   report length divList
 end
 
+to-report isMatch [ mut seq i ]
+    if not (mut  = (sublist seq i (i + length mut - 1))) [
+        ifelse length seq > (i + length mut - 1) [ report isMatch mut seq (i + 1) ]
+        [ report false ]
+    ]
+    report true
+end
+
 to-report getDiversity
   let result [ ]
   ;; Works only if starts at 0 or 1 not both
@@ -529,9 +524,9 @@ GRAPHICS-WINDOW
 242
 10
 487
-216
-3
-3
+266
+4
+4
 25.0
 1
 9
@@ -542,10 +537,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--3
-3
--3
-3
+-4
+4
+-4
+4
 0
 0
 1
@@ -578,7 +573,7 @@ GridLengthUI
 GridLengthUI
 2
 8
-3
+4
 1
 1
  by X
@@ -696,7 +691,7 @@ OUTPUT
 384
 794
 484
-14
+21
 
 MONITOR
 6
@@ -747,7 +742,7 @@ SWITCH
 43
 DebugDraw
 DebugDraw
-0
+1
 1
 -1000
 
