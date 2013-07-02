@@ -20,6 +20,7 @@ globals [
   MutationCount           ;; Count of useable mutations
   Diversity
   
+  TotalViruses
   
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
@@ -86,7 +87,7 @@ to setup-variables
   set GridCount GridLengthUI * GridLengthUI
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
   
-  ifelse GridLengthUI <= 5 [ set-patch-size 35 ] [ set-patch-size 30 ]
+  ifelse GridLengthUI <= 5 [ set-patch-size 25 ] [ set-patch-size 20 ]
   
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -125,7 +126,7 @@ to setup-variables
   ;; Debug Settings ;;
   ;;;;;;;;;;;;;;;;;;;;
   set Debug false
-  set DebugMutation true
+  set DebugMutation false
   set DebugReplicate false
 
 end
@@ -208,6 +209,7 @@ to setup-viruses [ n ]
        set ContainerInfected (replace-item containerNumber ContainerInfected (list item 0 xy item 1 xy))
        ;; Outputting Viruses, Starting container and sequence
 ;       output-print (word "Virus => " containerNumber "  ==>  " sequence )
+       set TotalViruses TotalViruses + 1
      ]
   ]
   
@@ -258,7 +260,7 @@ to replicate
          rt random-float 360
          ;; Color viruses by mutation - Binary is converted to decimal to use it as offset
          ;; This requires adjustment based on world size
-;          set color scale-color red (convertDecimal sequence) (GridCount * 2) 0
+          set color scale-color red (frequency 1 sequence) 10 0
          
          if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]   ;; debug print parent & mutation
          
@@ -274,6 +276,7 @@ to replicate
               set target [ ]                        ;; Reset, children will inherit this otherwise
               set MutationCount MutationCount + 1   
          ]
+         set TotalViruses TotalViruses + 1
     ]
 
 end
@@ -283,14 +286,15 @@ end
 ;; Input: sequence list of 0s and/or 1s
 ;; Returns: the mutated sequence
 to-report mutateSequence [ s ]
-    let i 0
-    while [ i < length s ] [
-        if random-float  100 < MutationProbability [
-            set s replace-item i s one-of [0 1]
+    let r [ ]
+    foreach s [
+       ifelse random-float  100 < MutationProbability [
+            set r lput one-of [0 1] r
+        ][
+          set r lput ? r
         ]
-        set i i + 1
     ]
-    report s 
+    report r
 end
 
 ;; Input: container number 0 - (n - 1)
@@ -381,7 +385,7 @@ to-report getAccessibleContainers [ genome containerNumbers ]
            set j j + 1
       ]
   ]   
-  output-print "\n==========================================================================="
+  if DebugMutation [ output-print "\n===========================================================================" ]
   report result
 end
 
@@ -525,11 +529,11 @@ end
 GRAPHICS-WINDOW
 242
 10
-567
-356
-4
-4
-35.0
+487
+216
+3
+3
+25.0
 1
 9
 1
@@ -539,10 +543,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--4
-4
--4
-4
+-3
+3
+-3
+3
 0
 0
 1
@@ -575,7 +579,7 @@ GridLengthUI
 GridLengthUI
 2
 8
-4
+3
 1
 1
  by X
@@ -631,9 +635,9 @@ HORIZONTAL
 MONITOR
 5
 330
-99
+104
 375
-Viruses
+Current Viruses
 count viruses
 0
 1
@@ -692,14 +696,14 @@ OUTPUT
 234
 384
 794
-556
-12
+484
+14
 
 MONITOR
-9
-432
-144
-477
+6
+448
+141
+493
 Infected Compartments
 getInfectedCount
 0
@@ -719,9 +723,9 @@ MutationCount
 
 PLOT
 796
-28
+10
 1117
-199
+181
 Population
 Time
 Viruses
@@ -733,8 +737,9 @@ true
 true
 "" ""
 PENS
-"Population" 1.0 0 -16777216 true "" "plot count viruses"
+"Population" 1.0 0 -14439633 true "" "plot count viruses"
 "Mutated" 1.0 0 -8053223 true "" "plot MutationCount"
+"Dead" 1.0 0 -16777216 true "" "plot (TotalViruses - count viruses)"
 
 SWITCH
 5
@@ -763,21 +768,21 @@ Viruses
 HORIZONTAL
 
 MONITOR
-104
-330
-222
-375
+117
+382
+216
+427
 Mutation Rate %
-MutationCount / count viruses * 100
+MutationCount / count Viruses * 100
 4
 1
 11
 
 PLOT
 797
-208
+190
 1119
-376
+358
 Genetic Diversity
 Hamming Distance
 Viruses
@@ -800,11 +805,33 @@ VirusSequenceLength
 VirusSequenceLength
 4
 100
-11
+8
 1
 1
 bits
 HORIZONTAL
+
+MONITOR
+116
+330
+215
+375
+Total Viruses
+TotalViruses
+0
+1
+11
+
+MONITOR
+7
+501
+136
+546
+MutationRate Total
+MutationCount / TotalViruses * 100
+2
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
