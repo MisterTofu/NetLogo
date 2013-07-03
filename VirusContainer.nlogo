@@ -77,7 +77,6 @@ end
 to setup-variables
   set DebugTest false
   set VirusSequence [0]
-  if DebugTest [ setup-tests ]
   
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
@@ -128,7 +127,7 @@ to setup-variables
   ;; Debug Settings ;;
   ;;;;;;;;;;;;;;;;;;;;
   set Debug false
-  set DebugMutation true
+  set DebugMutation false
   set DebugReplicate false
 
 end
@@ -198,13 +197,15 @@ end
 to setup-viruses [ n ]
   repeat n [
      ;;  Virus - sequence, containerNumber, target, targetContainer  
-     let xy getPositionInContainer random (GridCount - 1)                 ;; Get a random xy position in a container 
+
+;     let xy getPositionInContainer                  ;; Get a random xy position in a container 
      create-viruses 1 [    
        set size 0.5
        set color red                          ;; Make virus red
-       setxy (item 0 xy) (item 1 xy)          ;; Create virus at this xy 
+       let c random (GridCount - 1)          ;; Throws error if not const
+       move-to one-of patches with [ container =  c]
        set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
-       set containerNumber getContainerNumber
+       set containerNumber c
        set TotalViruses TotalViruses + 1
      ]
   ]
@@ -238,6 +239,7 @@ to go
   set Diversity getDiversity
   if DebugDraw [ drawVirusCounts ]
   if getInfectedCount = GridCount [ output-print "\n\n\n\n--[[ All Containers Infected ]]--" stop ]
+  if count viruses > 175000 [ output-print "\n\n\n\n--[[ Viruses Exceeded 175,000 Stopping for memory ]]--" stop ]
   tick
 end
 
@@ -257,34 +259,26 @@ to replicate
          ;; Color viruses by mutation - Binary is converted to decimal to use it as offset
          ;; This requires adjustment based on world size
           set color scale-color red (frequency 1 sequence) 10 0
-;          let accessible getAccessibleContainers sequence 
-         
-         
-         
-          let mutation [ ]
-          let result [ ]
-          
-          ;; Partition sequence to the size of mutation
-          let partition partitionSequence sequence (length one-of ContainerSequence)
-          let adjacent shuffle (item containerNumber AdjacentContainers)
-          ;; Get mutation sequence from each container number
-          foreach adjacent [ set mutation lput item ? ContainerSequence mutation ]
-          
-         ;; Debug Information 
-         if DebugMutation [ output-print (word "Sequence: " sequence " ==> Checking Containers: " adjacent)]
-         
+
+
+         let mutation [ ]                    
+         ;; Partition sequence to the size of mutation
+         let partition partitionSequence sequence (length one-of ContainerSequence)
+         let adjacent shuffle (item containerNumber AdjacentContainers)
+         ;; Get mutation sequence from each container number
+         foreach adjacent [ set mutation lput item ? ContainerSequence mutation ]
+
          let i 0
          while [ i < length mutation][
              if not (empty? filter [? = (item i mutation)] partition ) [
-                 if DebugMutation [ output-print (word "Found:     " (item i mutation) " ==> Moving to: " item i adjacent) ]
+                 if DebugMutation [ output-print "\n===========================================================================" output-print (word "Sequence: " sequence " ==> Checking Containers: " adjacent) output-print (word "Found:     " (item i mutation) " ==> Moving to: " item i adjacent) ]
                  move-to one-of patches with [container = (item i adjacent)]
-                 set i i + (length mutation)
                  set MutationCount MutationCount + 1
+                 set ContainerNumber item i adjacent
+                 set i i + (length mutation)
              ]
              set i i + 1
-         ]
-         if DebugMutation [ output-print "\n===========================================================================" ]
-                 
+         ]       
          set TotalViruses TotalViruses + 1
     ]
 end
@@ -297,7 +291,6 @@ to checkMutation [ seq mut ]
          ][
              output-print "No Match"
          ]
-
 end
 
 
@@ -328,16 +321,6 @@ to-report mutateSequence [ s ]
     report r
 end
 
-;; Input: container number 0 - (n - 1)
-;; Returns: XY of the container and the container asked for
-to-report getPositionInContainer [ c ]
-  let temp [ ]     ;; Cant report from non-observer context
-   ask patches with [ container = c ] [ 
-     set temp (list pxcor pycor c)
-   ] 
-  report temp
-end
-
 ;; Input: Container Number
 ;; Returns: A list of container numbers that are immediately adjacent to the cell
 to-report getAdjacentContainers [ current ]
@@ -362,62 +345,6 @@ to-report getAdjacentContainers [ current ]
   
   report containerNumbers
 end
-
-;to-report getTargetContainer [ genome currentContainer ]
-;    let adjacentContainers getAdjacentContainers currentContainer          ;; Gets adjacent cell numbers
-;    let accessible getAccessibleContainers genome adjacentContainers    ;; Cross check with mutations
-;    if not (accessible = [ ]) [  ;; Mutated and can enter another cell
-;        let selected one-of accessible 
-;        report sentence (getPositionInContainer selected) selected
-;    ]
-;    report [ ]
-;end
-
-; Input: sequence (list), container numbers to check sequence against (list)
-; Returns cell numbers, that match
-; simple linear search
-to-report getAccessibleContainers [ genome containerNumbers ]
-  let mutation [ ]
-  let result [ ]
-  
-  ;; Get mutation sequence from each container number
-  foreach containerNumbers [ set mutation lput item ? ContainerSequence mutation ]
-
- ;; Debug Information 
- if DebugMutation [ output-print (word "Genome: " genome " ==> Checking Containers: " containerNumbers)]
- 
- let j 0 ;; using it as a for loop with foreach
- foreach mutation [
-      ;; mutation sequence cant be longer than one being compared
-      ifelse length ? > length genome [ print "Error: Mutation Length > Input Length         Trace => getAccessibleContainers" ][
-           let i 0
-           ;; Compare every bit
-           while [ (i + length ?) <= length genome ] [
-               
-               if (sublist genome i ( i + length ? )) = ? [ ;; We have a match
-                    if DebugMutation [ 
-                          let offset " " 
-                          repeat (i + 7) [ set offset (word offset " ") ] 
-                          output-print (word offset ?"  <=== Container " item j containerNumbers) 
-                     ]
-                    set result lput (item j containerNumbers) result     ;; add container number result
-                    set i i + length genome                              ;; exit while loop
-               ]
-               set i i + 1 
-           ]
-           set j j + 1
-      ]
-  ]   
-  if DebugMutation [ output-print "\n===========================================================================" ]
-  report result
-end
-
-;let seq [ ]
-
-
-
-
-
 
 ;; Input: number
 ;; Returns: a list the number equivalent in binary 
@@ -458,79 +385,36 @@ to-report getInfectedCount
   report total
 end
 
-;; Input: xy1 xy2
-;; Returns: distance between the two points
-to-report getDistance [x1 y1 x2 y2]
-  report round sqrt (  (x2 - x1) ^ 2 +  (y2 - y1) ^ 2 )
-end
-
-to-report getDiversitySequence [ pos match ]
-  let i 0
-  foreach [item pos sequence] of viruses [
-       if ? = match [ set i i + 1 ]
-  ]
-  report i
-end
-  
-  
-;; Only to setup for some experimental testing... 
-to setup-tests
-  set DeathProbability 0
-  set VirusStart 1
-  set ReplicationProbability 100
-  output-print (word "Dont forget to disable all containers infected stop\nInfected Compartments now displays successful mutation")
-  set DebugMutation true
-end
-
-to-report frequency [val thelist]
+ 
+to-report frequency [val
+ thelist]
   report length filter [? = val] thelist
 end
-
+  
+;; returns a list 0..(n - 1), where index = distance
 to-report getDiversityCount
-    let div diversity
     let i 0
     let result [ ]
-    while [ i < (MutationLength + 1) ] [
-        set result lput countNDiversity i div result
+    repeat VirusSequenceLength [
+        set result lput countNDiversity i getDiversity result
         set i i + 1
     ]
+;    while [ i < (MutationLength + 1) ] [
+;        set result lput countNDiversity i div result
+;        set i i + 1
+;    ]
     report result
 end
 
+
 to-report countNDiversity [ n divList ]
-  ifelse not (n = 0) [    
-      let i 0
-      while [ i < n ] [
-          set divList remove i divList
-          set i i + 1
-      ]
-      set i n + 1
-      while [ i < (MutationLength + 1) ] [
-          set divList remove i divList
-          set i i + 1
-      ]
-  ][
-      let i 1
-      while [ i < (MutationLength + 1) ] [
-          set divList remove i divList
-          set i i + 1
-      ]
-  ]
-  report length divList
+    report length filter [ ? = n ] divList
 end
 
-to-report isMatch [ mut seq i ]
-    if not (mut  = (sublist seq i (i + length mut - 1))) [
-        ifelse length seq > (i + length mut - 1) [ report isMatch mut seq (i + 1) ]
-        [ report false ]
-    ]
-    report true
-end
 
 to-report getDiversity
   let result [ ]
-  ;; Works only if starts at 0 or 1 not both
-  let start n-values VirusSequenceLength [one-of VirusSequence]
+  let start n-values VirusSequenceLength [ 0 ]
   ask viruses [ set result lput hammingDistance start sequence result ]
   report result
 end
@@ -713,7 +597,7 @@ OUTPUT
 234
 384
 794
-484
+541
 14
 
 MONITOR
@@ -731,7 +615,7 @@ MONITOR
 6
 383
 101
-429
+428
 Mutation Count
 MutationCount
 2
@@ -765,7 +649,7 @@ SWITCH
 43
 DebugDraw
 DebugDraw
-0
+1
 1
 -1000
 
@@ -803,7 +687,7 @@ PLOT
 Genetic Diversity
 Hamming Distance
 Viruses
-0.0
+-1.0
 10.0
 0.0
 10.0
@@ -811,7 +695,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "" "histogram Diversity"
+"default" 0.99 1 -16777216 true "" "histogram Diversity"
 
 SLIDER
 5
@@ -822,7 +706,7 @@ VirusSequenceLength
 VirusSequenceLength
 4
 100
-8
+4
 1
 1
 bits
@@ -842,11 +726,11 @@ TotalViruses
 MONITOR
 7
 501
-136
+143
 546
-MutationRate Total
+MutationRate Total %
 MutationCount / TotalViruses * 100
-2
+3
 1
 11
 
