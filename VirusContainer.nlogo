@@ -65,8 +65,9 @@ to setup
   setup-viruses VirusStart
   
   set Diversity getDiversity
-  set-histogram-num-bars VirusSequenceLength
   set-plot-x-range 0 VirusSequenceLength
+  set-histogram-num-bars VirusSequenceLength
+
 end
 
 
@@ -238,8 +239,8 @@ to go
   ask viruses [ if random-float 100 < ReplicationProbability [ replicate ] ]
   set Diversity getDiversity
   if DebugDraw [ drawVirusCounts ]
-  if getInfectedCount = GridCount [ output-print "\n\n\n\n--[[ All Containers Infected ]]--" stop ]
-  if count viruses > 175000 [ output-print "\n\n\n\n--[[ Viruses Exceeded 175,000 Stopping for memory ]]--" stop ]
+  if getInfectedCount = GridCount [ output-print (word "\n\n\n\n--[[ All Containers Infected ]]--\n" date-and-time) stop ]
+  if count viruses > 175000 [ output-print (word "\n\n\n\n--[[ Viruses Exceeded 175,000 Stopping for memory ]]--\n" date-and-time) stop ]
   tick
 end
 
@@ -687,7 +688,7 @@ PLOT
 Genetic Diversity
 Hamming Distance
 Viruses
--1.0
+0.0
 10.0
 0.0
 10.0
@@ -695,7 +696,7 @@ true
 false
 "" ""
 PENS
-"default" 0.99 1 -16777216 true "" "histogram Diversity"
+"default" 1.0 1 -16777216 true "" "histogram Diversity"
 
 SLIDER
 5
@@ -1085,14 +1086,14 @@ NetLogo 5.0.4
   <experiment name="experiment1" repetitions="1" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
-    <timeLimit steps="75"/>
     <metric>count viruses</metric>
+    <metric>TotalViruses</metric>
     <metric>getInfectedCount</metric>
     <metric>MutationCount</metric>
-    <metric>countNDiversity 0 diversity</metric>
-    <metric>countNDiversity 1 diversity</metric>
-    <metric>countNDiversity 2 diversity</metric>
-    <metric>countNDiversity 3 diversity</metric>
+    <metric>countNDiversity 0 getDiversity</metric>
+    <metric>countNDiversity 1 getDiversity</metric>
+    <metric>countNDiversity 2 getDiversity</metric>
+    <metric>countNDiversity 3 getDiversity</metric>
     <enumeratedValueSet variable="VirusStart">
       <value value="1"/>
     </enumeratedValueSet>
