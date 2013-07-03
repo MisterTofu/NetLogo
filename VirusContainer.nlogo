@@ -43,7 +43,7 @@ globals [
 breed [viruses virus]
 viruses-own [
   sequence               ;; Virus sequence
-;  containerNumber
+  containerNumber
 ;  target
 ]
 
@@ -101,10 +101,10 @@ to setup-variables
 ;  set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
   let i 0
   set AdjacentContainers [ ]
-  repeat (GridCount - 1) [
+  repeat GridCount [
       set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
+      set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
-      set AdjacentContainers lput getAdjacentContainers i 
   ]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -128,7 +128,7 @@ to setup-variables
   ;; Debug Settings ;;
   ;;;;;;;;;;;;;;;;;;;;
   set Debug false
-  set DebugMutation false
+  set DebugMutation true
   set DebugReplicate false
 
 end
@@ -204,6 +204,7 @@ to setup-viruses [ n ]
        set color red                          ;; Make virus red
        setxy (item 0 xy) (item 1 xy)          ;; Create virus at this xy 
        set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
+       set containerNumber getContainerNumber
        set TotalViruses TotalViruses + 1
      ]
   ]
@@ -241,10 +242,6 @@ to go
 end
 
 
-
-
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;   Subroutines   ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -260,26 +257,59 @@ to replicate
          ;; Color viruses by mutation - Binary is converted to decimal to use it as offset
          ;; This requires adjustment based on world size
           set color scale-color red (frequency 1 sequence) 10 0
+;          let accessible getAccessibleContainers sequence 
          
-;         if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]   ;; debug print parent & mutation
          
-         ;; Check for mutation matches
-;         set target getTargetContainer sequence getContainerNumber
-;         
-;         ;; We found a mutation, move to container
-;         if not (target = [ ]) [   
-;             ;; Move to container, make it infected
-;              setxy ((item 0 target) - random-float Space + random-float Space) ((item 1 target) - random-float Space + random-float Space)
-;              set ContainerInfected replace-item (item 2 target) ContainerInfected (list item 0 target item 1 target) 
-;;              set containerNumber item 2 target
-;              set target [ ]                        ;; Reset, children will inherit this otherwise
-;              set MutationCount MutationCount + 1   
-;         ]
+         
+          let mutation [ ]
+          let result [ ]
+          
+          ;; Partition sequence to the size of mutation
+          let partition partitionSequence sequence (length one-of ContainerSequence)
+          let adjacent shuffle (item containerNumber AdjacentContainers)
+          ;; Get mutation sequence from each container number
+          foreach adjacent [ set mutation lput item ? ContainerSequence mutation ]
+          
+         ;; Debug Information 
+         if DebugMutation [ output-print (word "Sequence: " sequence " ==> Checking Containers: " adjacent)]
+         
+         let i 0
+         while [ i < length mutation][
+             if not (empty? filter [? = (item i mutation)] partition ) [
+                 if DebugMutation [ output-print (word "Found:     " (item i mutation) " ==> Moving to: " item i adjacent) ]
+                 move-to one-of patches with [container = (item i adjacent)]
+                 set i i + (length mutation)
+                 set MutationCount MutationCount + 1
+             ]
+             set i i + 1
+         ]
+         if DebugMutation [ output-print "\n===========================================================================" ]
+                 
          set TotalViruses TotalViruses + 1
     ]
 end
 
+to checkMutation [ seq mut ]
+    let partition partitionSequence seq length mut
+    output-print (word "\n\n\n"seq"\n"mut)
+         ifelse not (empty? filter [? = mut] partition ) [
+             output-print ("Found")
+         ][
+             output-print "No Match"
+         ]
 
+end
+
+
+to-report partitionSequence [ seq mSize ]
+  let i 0
+  let res [ ]
+  while [ (i + mSize) <= length seq ] [
+      set res lput sublist seq i (i + mSize) res
+      set i i + 1
+  ]
+  report res
+end
 
 
 
@@ -318,25 +348,17 @@ to-report getAdjacentContainers [ current ]
   let edge (current mod GridLengthUI) ; left edge = 0 and right edge = (n - 1), where n = GridLengthUI
   let row floor (current / GridLengthUI) ; Gets row # 0 - (n - 1), n = GridLengthUI
   
-  if debug [ print (word "Row: " row " Edge: " edge )]
+  ;; Check Left
+  if edge != 0 and current > 0 [ set containerNumbers lput (current - 1) containerNumbers ]     
   
-  if edge != 0 and current > 0 [ ; Do we have a left side avaliable?
-    set containerNumbers lput (current - 1) containerNumbers 
-    if debug [ print "Left Adjacent Container Found" ]
-  ]     
-  if edge != (GridLengthUI - 1) and current < GridCount [  ; check right
-    set containerNumbers lput (current + 1) containerNumbers 
-    if debug [print "Right Adjacent Container Found"]
-  ]
+  ;;Check Right
+  if edge != (GridLengthUI - 1) and current < GridCount [ set containerNumbers lput (current + 1) containerNumbers ]
  
-  if row != 0 [ ; top
-    set containerNumbers lput (current - GridLengthUI) containerNumbers 
-    if debug [print "Top Adjacent Container Found" ]
-  ]
-  if row != (GridLengthUI - 1) [ 
-    set containerNumbers lput (current + GridLengthUI) containerNumbers 
-    if debug [print "Bottom Adjacent Container Found" ]
-  ]
+  ;; Check Above
+  if row != 0 [ set containerNumbers lput (current - GridLengthUI) containerNumbers ]
+  
+  ;;Check below
+  if row != (GridLengthUI - 1) [ set containerNumbers lput (current + GridLengthUI) containerNumbers ]
   
   report containerNumbers
 end
@@ -429,7 +451,7 @@ end
 to-report getInfectedCount
   let total 0  
   let i 0
-  repeat (GridCount - 1) [
+  repeat GridCount [
       if any? viruses-on patches with [container = i] [ set total total + 1 ]
       set i i + 1
   ]
@@ -525,9 +547,9 @@ GRAPHICS-WINDOW
 242
 10
 487
-266
-4
-4
+216
+3
+3
 25.0
 1
 9
@@ -538,10 +560,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--4
-4
--4
-4
+-3
+3
+-3
+3
 0
 0
 1
@@ -574,7 +596,7 @@ GridLengthUI
 GridLengthUI
 2
 8
-4
+3
 1
 1
  by X
@@ -692,7 +714,7 @@ OUTPUT
 384
 794
 484
-21
+14
 
 MONITOR
 6
@@ -708,8 +730,8 @@ getInfectedCount
 MONITOR
 6
 383
-100
-428
+101
+429
 Mutation Count
 MutationCount
 2
@@ -743,7 +765,7 @@ SWITCH
 43
 DebugDraw
 DebugDraw
-1
+0
 1
 -1000
 
