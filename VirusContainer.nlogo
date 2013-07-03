@@ -15,12 +15,12 @@ globals [
   
   ContainerSequence       ;; Mutation sequence for each container
 
-  ContainerInfected       ;; Tracks infected containers 
+
   MutationLength          ;; Length of mutation of each container
-  MutationCount           ;; Count of useable mutations
-  Diversity
+  MutationCount           ;; Count of useable mutations ????
+
   
-  TotalViruses
+  AdjacentContainers
   
   Debug                   ;; 
   DebugMutation           ;; Output for mutation
@@ -36,13 +36,15 @@ globals [
   
   ;;Plotting Vars
   P1
+  Diversity
+  TotalViruses
 ]
 
 breed [viruses virus]
 viruses-own [
   sequence               ;; Virus sequence
-  containerNumber        ;; Current container virus is in
-  target                 ;; Coordinates for target container (if applicable)
+;  containerNumber
+;  target
 ]
 
 patches-own [
@@ -95,14 +97,14 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;;;;;
       
   set ContainerSequence [ ]                           ;; Needs to be initalized as a list before adding it
-  set ContainerInfected [ ]
   set MutationLength length convertBinary GridCount
 ;  set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
   let i 0
-  while [ i < GridCount ] [
+  set AdjacentContainers [ ]
+  repeat (GridCount - 1) [
       set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
-      set ContainerInfected lput false ContainerInfected
       set i i + 1
+      set AdjacentContainers lput getAdjacentContainers i 
   ]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -199,21 +201,19 @@ to setup-viruses [ n ]
      let xy getPositionInContainer random (GridCount - 1)                 ;; Get a random xy position in a container 
      create-viruses 1 [    
        set size 0.5
-       rt random 180
        set color red                          ;; Make virus red
        setxy (item 0 xy) (item 1 xy)          ;; Create virus at this xy 
-       set containerNumber (item 2 xy)        ;; Set the container number it is infecting
-       set target [ ]                         ;; Set an empty list
        set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
-       ;; Set our global variable  container as infected
-       set ContainerInfected (replace-item containerNumber ContainerInfected (list item 0 xy item 1 xy))
-       ;; Outputting Viruses, Starting container and sequence
-;       output-print (word "Virus => " containerNumber "  ==>  " sequence )
        set TotalViruses TotalViruses + 1
      ]
   ]
-  
   if DebugDraw [ drawVirusCounts ]
+end
+
+to-report getContainerNumber
+  let res [ ]
+  ask patch-here [ set res container ]
+  report container
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -224,7 +224,7 @@ to go
 ;  set-histogram-num-bars (MutationLength + 1)
 ;  set-plot-x-range 0 (MutationLength + 1)
   ;; Check for goal states
-  if not any? viruses [ output-print "\n\n--[[ No Viruses Left ]]--" stop ] 
+  if not any? viruses [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" stop ] 
 ;  if (count viruses) > 50000 [output-print "Max Viruses Stopping" stop ] 
 
 
@@ -236,7 +236,7 @@ to go
   ask viruses [ if random-float 100 < ReplicationProbability [ replicate ] ]
   set Diversity getDiversity
   if DebugDraw [ drawVirusCounts ]
-  if getInfectedCount = GridCount [ output-print "\n\n--[[ All Containers Infected ]]--" stop ]
+  if getInfectedCount = GridCount [ output-print "\n\n\n\n--[[ All Containers Infected ]]--" stop ]
   tick
 end
 
@@ -257,29 +257,30 @@ to replicate
     hatch-viruses 1  [ 
          ;; Mutate the parents sequence
          set sequence (mutateSequence parent)
-         rt random-float 360
          ;; Color viruses by mutation - Binary is converted to decimal to use it as offset
          ;; This requires adjustment based on world size
           set color scale-color red (frequency 1 sequence) 10 0
          
-         if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]   ;; debug print parent & mutation
+;         if DebugReplicate [ print (word "Parent: " parent "  ==>  " sequence) ]   ;; debug print parent & mutation
          
          ;; Check for mutation matches
-         set target getTargetContainer sequence containerNumber
-         
-         ;; We found a mutation, move to container
-         if not (target = [ ]) [   
-             ;; Move to container, make it infected
-              setxy ((item 0 target) - random-float Space + random-float Space) ((item 1 target) - random-float Space + random-float Space)
-              set ContainerInfected replace-item (item 2 target) ContainerInfected (list item 0 target item 1 target) 
-              set containerNumber item 2 target
-              set target [ ]                        ;; Reset, children will inherit this otherwise
-              set MutationCount MutationCount + 1   
-         ]
+;         set target getTargetContainer sequence getContainerNumber
+;         
+;         ;; We found a mutation, move to container
+;         if not (target = [ ]) [   
+;             ;; Move to container, make it infected
+;              setxy ((item 0 target) - random-float Space + random-float Space) ((item 1 target) - random-float Space + random-float Space)
+;              set ContainerInfected replace-item (item 2 target) ContainerInfected (list item 0 target item 1 target) 
+;;              set containerNumber item 2 target
+;              set target [ ]                        ;; Reset, children will inherit this otherwise
+;              set MutationCount MutationCount + 1   
+;         ]
          set TotalViruses TotalViruses + 1
     ]
-
 end
+
+
+
 
 
 
@@ -340,15 +341,15 @@ to-report getAdjacentContainers [ current ]
   report containerNumbers
 end
 
-to-report getTargetContainer [ genome currentContainer ]
-    let adjacentContainers getAdjacentContainers currentContainer          ;; Gets adjacent cell numbers
-    let accessible getAccessibleContainers genome adjacentContainers    ;; Cross check with mutations
-    if not (accessible = [ ]) [  ;; Mutated and can enter another cell
-        let selected one-of accessible 
-        report sentence (getPositionInContainer selected) selected
-    ]
-    report [ ]
-end
+;to-report getTargetContainer [ genome currentContainer ]
+;    let adjacentContainers getAdjacentContainers currentContainer          ;; Gets adjacent cell numbers
+;    let accessible getAccessibleContainers genome adjacentContainers    ;; Cross check with mutations
+;    if not (accessible = [ ]) [  ;; Mutated and can enter another cell
+;        let selected one-of accessible 
+;        report sentence (getPositionInContainer selected) selected
+;    ]
+;    report [ ]
+;end
 
 ; Input: sequence (list), container numbers to check sequence against (list)
 ; Returns cell numbers, that match
@@ -428,7 +429,7 @@ end
 to-report getInfectedCount
   let total 0  
   let i 0
-  while [ i < GridCount ] [ 
+  repeat (GridCount - 1) [
       if any? viruses-on patches with [container = i] [ set total total + 1 ]
       set i i + 1
   ]
