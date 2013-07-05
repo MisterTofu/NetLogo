@@ -2,13 +2,11 @@
 ;; Author: Travis A. Ebesu
 ;; Description: 
 ;; Notes:
-;; Initial virus, does not move to another container
-;; Mutated virus, will only move once to another container
+
 
 extensions [graphics]
 
 globals [
-  WorldLength             ;; Length to resize world
   GridSize                ;; Size of each grid 
   GridCount               ;; Total number of grids
   VirusSequence
@@ -22,12 +20,9 @@ globals [
   
   AdjacentContainers
   
-  Debug                   ;; 
   DebugMutation           ;; Output for mutation
   DebugReplicate          ;; Output for replication
-  DebugTest               ;; 
   
-  Space                   ;; Space to move within the cell, show diversity
   
   BackgroundColor         ;; Set the background color
   DrawSequenceColor       ;; Color of sequence drawn eg 0 1 0
@@ -35,7 +30,6 @@ globals [
   
   
   ;;Plotting Vars
-  P1
   Diversity
   TotalViruses
 ]
@@ -44,7 +38,6 @@ breed [viruses virus]
 viruses-own [
   sequence               ;; Virus sequence
   containerNumber
-;  target
 ]
 
 patches-own [
@@ -57,9 +50,8 @@ patches-own [
 
 to setup
   clear-all
-  set Diversity [0]      ; used for graphing... throws an error
+  set Diversity [0]      ; preset var used for graphing... if not throws an error
   reset-ticks
-;  no-display
   setup-variables
   setup-patches
   setup-viruses VirusStart
@@ -76,43 +68,39 @@ end
 ;;;;;;;;;;;;;;;;;;;;;
 
 to setup-variables
-  set DebugTest false
   set VirusSequence [0]
   
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;
   
-  set GridSize 2 ; x + 1 => x by x size for each grid
-  ; GridLengthUI is X by X 
-  set WorldLength GridLengthUI
-  set GridCount GridLengthUI * GridLengthUI
+  set GridSize 2                                                         ;; x + 1 => x by x size for each grid
+  set GridCount WorldLength * WorldLength                                ;; Number of grids
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
-  
-  ifelse GridLengthUI <= 5 [ set-patch-size 25 ] [ set-patch-size 20 ]
+  ifelse WorldLength <= 5 [ set-patch-size 25 ] [ set-patch-size 20 ]    ;; resize patches
   
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Mutation Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;
       
-  set ContainerSequence [ ]                           ;; Needs to be initalized as a list before adding it
-  set MutationLength length convertBinary GridCount
-;  set VirusSequenceLength MutationLength              ;; Currently VirusSequenceLength = MutationLength
-  let i 0
+  set ContainerSequence [ ]                                              ;; Needs to be initalized as a list before using
   set AdjacentContainers [ ]
+  set MutationLength length convertBinary GridCount                      ;; Mutation Length = GridCount converted binary
+
+  let i 0
+
   repeat GridCount [
       set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
       set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
   ]
 
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Additional Settings ;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;
-  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;  
   set BackgroundColor rgb 84 84 84
-  set Space 0.38
   set DrawSequenceColor rgb 255 255 255
   set DrawVirusCountColor rgb 0 20 148
   
@@ -127,16 +115,19 @@ to setup-variables
   ;;;;;;;;;;;;;;;;;;;;
   ;; Debug Settings ;;
   ;;;;;;;;;;;;;;;;;;;;
-  set Debug false
   set DebugMutation false
   set DebugReplicate false
 
 end
 
 
+
+
 ;;;;;;;;;;;;;;;;;;;;
 ;; Setup Patches  ;;
 ;;;;;;;;;;;;;;;;;;;;
+
+;; Colors patches and assigns container numbers
 to setup-patches
   let x (- WorldLength)
   let y WorldLength
@@ -174,10 +165,10 @@ to setup-patches
      set x (- WorldLength)
   ]
 
-; ask patches with [ not (pcolor = BackgroundColor)] [ set pcolor lime + 4.2]
-
 end
 
+
+;; Draws the amount of viruses above each container
 to drawVirusCounts
   graphics:set-text-color DrawVirusCountColor
   let i 0
@@ -191,19 +182,19 @@ to drawVirusCounts
   ]
 end
 
+
+
 ;;;;;;;;;;;;;;;;;;;
 ;; Setup-Viruses ;;
 ;;;;;;;;;;;;;;;;;;;
- 
+
+;; Create n-viruses with the following settings 
 to setup-viruses [ n ]
   repeat n [
-     ;;  Virus - sequence, containerNumber, target, targetContainer  
-
-;     let xy getPositionInContainer                  ;; Get a random xy position in a container 
      create-viruses 1 [    
        set size 0.5
-       set color red                          ;; Make virus red
-       let c random (GridCount - 1)          ;; Throws error if not const
+       set color red                                                        ;; Make virus red
+       let c random (GridCount - 1)                                         ;; Throws error if not const
        move-to one-of patches with [ container =  c]
        set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
        set containerNumber c
@@ -213,22 +204,13 @@ to setup-viruses [ n ]
   if DebugDraw [ drawVirusCounts ]
 end
 
-to-report getContainerNumber
-  let res [ ]
-  ask patch-here [ set res container ]
-  report container
-end
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   Go   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
-;  set-histogram-num-bars (MutationLength + 1)
-;  set-plot-x-range 0 (MutationLength + 1)
-  ;; Check for goal states
   if not any? viruses [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" stop ] 
-;  if (count viruses) > 50000 [output-print "Max Viruses Stopping" stop ] 
+
 
 
   
@@ -237,19 +219,23 @@ to go
   
   ;; Replicate viruses by probability specified
   ask viruses [ if random-float 100 < ReplicationProbability [ replicate ] ]
+  
+  ;; Update diversity variable for graphing
   set Diversity getDiversity
   if DebugDraw [ drawVirusCounts ]
+  
+  ;; Check if we reached goal states
   if getInfectedCount = GridCount [ output-print (word "\n\n\n\n--[[ All Containers Infected ]]--\n" date-and-time) stop ]
   if count viruses > 175000 [ output-print (word "\n\n\n\n--[[ Viruses Exceeded 175,000 Stopping for memory ]]--\n" date-and-time) stop ]
   tick
 end
 
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;   Subroutines   ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 
 ;; Reproduces and mutates its current sequence
 to replicate     
@@ -257,19 +243,18 @@ to replicate
     hatch-viruses 1  [ 
          ;; Mutate the parents sequence
          set sequence (mutateSequence parent)
-         ;; Color viruses by mutation - Binary is converted to decimal to use it as offset
-         ;; This requires adjustment based on world size
-          set color scale-color red (frequency 1 sequence) 10 0
+         
+         set color scale-color red (frequency 1 sequence) 10 0
 
 
          let mutation [ ]                    
-         ;; Partition sequence to the size of mutation
-         let partition partitionSequence sequence (length one-of ContainerSequence)
-         let adjacent shuffle (item containerNumber AdjacentContainers)
-         ;; Get mutation sequence from each container number
-         foreach adjacent [ set mutation lput item ? ContainerSequence mutation ]
+         let partition partitionSequence sequence (length one-of ContainerSequence)        ;; Partition sequence to the size of mutation
+         let adjacent shuffle (item containerNumber AdjacentContainers)                    ;; Mix up the container numbers to get a random 
+
+         foreach adjacent [ set mutation lput item ? ContainerSequence mutation ]          ;; Get mutation sequence from each container number
 
          let i 0
+         ;; Check for matches, move them in the container if found
          while [ i < length mutation][
              if not (empty? filter [? = (item i mutation)] partition ) [
                  if DebugMutation [ output-print "\n===========================================================================" output-print (word "Sequence: " sequence " ==> Checking Containers: " adjacent) output-print (word "Found:     " (item i mutation) " ==> Moving to: " item i adjacent) ]
@@ -284,17 +269,8 @@ to replicate
     ]
 end
 
-to checkMutation [ seq mut ]
-    let partition partitionSequence seq length mut
-    output-print (word "\n\n\n"seq"\n"mut)
-         ifelse not (empty? filter [? = mut] partition ) [
-             output-print ("Found")
-         ][
-             output-print "No Match"
-         ]
-end
-
-
+;;  Creates a list from the sequence of mSize
+;;  eg [ 0 1 0 1] 2 returns [[0 1] [ 1 0] [ 0 1]] 
 to-report partitionSequence [ seq mSize ]
   let i 0
   let res [ ]
@@ -306,10 +282,8 @@ to-report partitionSequence [ seq mSize ]
 end
 
 
-
-
 ;; Input: sequence list of 0s and/or 1s
-;; Returns: the mutated sequence
+;; Returns: the mutated sequence, randomly
 to-report mutateSequence [ s ]
     let r [ ]
     foreach s [
@@ -328,21 +302,20 @@ to-report getAdjacentContainers [ current ]
   let containerNumbers [ ]
   let result [ ]
   
-  ; GridLengthUI is the original X by X, 
-  let edge (current mod GridLengthUI) ; left edge = 0 and right edge = (n - 1), where n = GridLengthUI
-  let row floor (current / GridLengthUI) ; Gets row # 0 - (n - 1), n = GridLengthUI
+  let edge (current mod WorldLength) ; left edge = 0 and right edge = (n - 1), where n = WorldLength
+  let row floor (current / WorldLength) ; Gets row # 0 - (n - 1), n = WorldLength
   
   ;; Check Left
   if edge != 0 and current > 0 [ set containerNumbers lput (current - 1) containerNumbers ]     
   
   ;;Check Right
-  if edge != (GridLengthUI - 1) and current < GridCount [ set containerNumbers lput (current + 1) containerNumbers ]
+  if edge != (WorldLength - 1) and current < GridCount [ set containerNumbers lput (current + 1) containerNumbers ]
  
   ;; Check Above
-  if row != 0 [ set containerNumbers lput (current - GridLengthUI) containerNumbers ]
+  if row != 0 [ set containerNumbers lput (current - WorldLength) containerNumbers ]
   
   ;;Check below
-  if row != (GridLengthUI - 1) [ set containerNumbers lput (current + GridLengthUI) containerNumbers ]
+  if row != (WorldLength - 1) [ set containerNumbers lput (current + WorldLength) containerNumbers ]
   
   report containerNumbers
 end
@@ -386,33 +359,24 @@ to-report getInfectedCount
   report total
 end
 
- 
-to-report frequency [val
- thelist]
+;; Gets the frequency of the value from a given list
+to-report frequency [val thelist]
   report length filter [? = val] thelist
 end
   
-;; returns a list 0..(n - 1), where index = distance
+;; returns the count of each diversity
+;; list 0..(n - 1), where index = distance from 0 0 0 ... 
 to-report getDiversityCount
     let i 0
     let result [ ]
     repeat VirusSequenceLength [
-        set result lput countNDiversity i getDiversity result
+        set result lput frequency i getDiversity result
         set i i + 1
     ]
-;    while [ i < (MutationLength + 1) ] [
-;        set result lput countNDiversity i div result
-;        set i i + 1
-;    ]
     report result
 end
 
-
-to-report countNDiversity [ n divList ]
-    report length filter [ ? = n ] divList
-end
-
-
+;; Get the hamming distance of each sequence from 0 0 0 ...
 to-report getDiversity
   let result [ ]
   let start n-values VirusSequenceLength [ 0 ]
@@ -477,8 +441,8 @@ SLIDER
 89
 221
 122
-GridLengthUI
-GridLengthUI
+WorldLength
+WorldLength
 2
 8
 3
@@ -528,7 +492,7 @@ MutationProbability
 MutationProbability
 1
 100
-5
+7
 1
 1
 % per a base
@@ -599,7 +563,7 @@ OUTPUT
 384
 794
 541
-14
+12
 
 MONITOR
 6
@@ -650,7 +614,7 @@ SWITCH
 43
 DebugDraw
 DebugDraw
-1
+0
 1
 -1000
 
