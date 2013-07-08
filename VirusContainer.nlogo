@@ -16,7 +16,8 @@ globals [
 
   MutationLength          ;; Length of mutation of each container
   MutationCount           ;; Count of useable mutations ????
-
+  DrugSequence
+  DrugContainers
   
   AdjacentContainers
   
@@ -69,6 +70,7 @@ end
 
 to setup-variables
   set VirusSequence [0]
+  set DrugSequence [ 0 0 0 0 ]
   
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
@@ -86,12 +88,25 @@ to setup-variables
       
   set ContainerSequence [ ]                                              ;; Needs to be initalized as a list before using
   set AdjacentContainers [ ]
-  set MutationLength length convertBinary GridCount                      ;; Mutation Length = GridCount converted binary
-
+  set MutationLength length convertBinary (GridCount - 1)                      ;; Mutation Length = GridCount converted binary
+  set DrugContainers [ ]
+  
   let i 0
-
   repeat GridCount [
-      set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
+
+;      Set the containers sequence to their respective number in binary      
+;      let temp convertBinary i
+;      set ContainerSequence lput (sentence temp (n-values (MutationLength - length temp) [0])) ContainerSequence
+
+     set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
+
+     ;; Partition the sequences to the same size
+     let partition partitionSequence (item i ContainerSequence) (length DrugSequence)
+     
+     ;; Check for a match with our drug sequence
+     if not (empty? filter [? = DrugSequence] partition ) [ set DrugContainers lput i DrugContainers ]
+    
+      
       set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
   ]
@@ -137,6 +152,7 @@ to setup-patches
   let containerY WorldLength - halfGridSize
   let c 0
   graphics:set-text-color DrawSequenceColor
+  
   ; Iterate over patches, top to bottom, right to left
   while [ y >= (- WorldLength) ] [
       while [ x <= WorldLength ] [
@@ -149,8 +165,7 @@ to setup-patches
              ask patch containerX containerY [  
                  set container c
                  if DebugDraw [
-                     graphics:draw-text  containerX (containerY + 0.7) "C"  reduce word (item c ContainerSequence) 
-;                     graphics:fill-rectangle containerX - 0.5 containerY + 0.5 1 1
+                     graphics:draw-text containerX (containerY + 0.7) "C"  reduce word (item c ContainerSequence) 
                   ]
              ]
              set c c + 1 
@@ -164,7 +179,7 @@ to setup-patches
      set y y - 1 
      set x (- WorldLength)
   ]
-
+  foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]]
 end
 
 
@@ -193,12 +208,12 @@ to setup-viruses [ n ]
   repeat n [
      create-viruses 1 [    
        set size 0.5
-       set color red                                                        ;; Make virus red
-       let c random (GridCount - 1)                                         ;; Throws error if not const
-       move-to one-of patches with [ container =  c]
-       set sequence n-values VirusSequenceLength [one-of VirusSequence]     ;; Create a random virus sequence 
-       set containerNumber c
+       set color red                                                         ;; Make virus red
+       set containerNumber random (GridCount - 1)                            ;; Throws error if not const
+       set sequence n-values VirusSequenceLength [one-of VirusSequence]      ;; Create a random virus sequence 
        set TotalViruses TotalViruses + 1
+       let c containerNumber                                                 ;; Wont allow turtle context, set temp var      
+       move-to one-of patches with [ container =  c]
      ]
   ]
   if DebugDraw [ drawVirusCounts ]
@@ -312,6 +327,8 @@ end
 ;; Input: number
 ;; Returns: a list the number equivalent in binary 
 to-report convertBinary [ num ]
+  if num = 0 [ report [0] ]
+  
   let k 2 ; change k to convert to different bases
   let digit [ ]
   while [ num != 0 ] [
@@ -373,7 +390,7 @@ to-report getDiversity
   report result
 end
 
-;; uri 
+;; Uri Wilensky
 to-report hammingDistance [sequence1 sequence2]
   if length sequence1 = length sequence2 [ ;; 
       report (length remove true (map [?1 = ?2] sequence1 sequence2))
