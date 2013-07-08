@@ -7,7 +7,7 @@
 extensions [graphics]
 
 globals [
-  GridSize                ;; Size of each grid 
+
   GridCount               ;; Total number of grids
   VirusSequence
   
@@ -74,10 +74,10 @@ to setup-variables
   ;; World Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;
   
-  set GridSize 2                                                         ;; x + 1 => x by x size for each grid
+
   set GridCount WorldLength * WorldLength                                ;; Number of grids
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
-  ifelse WorldLength <= 5 [ set-patch-size 25 ] [ set-patch-size 20 ]    ;; resize patches
+;  ifelse WorldLength <= 5 [ set-patch-size 25 ] [ set-patch-size 20 ]    ;; resize patches
   
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -131,8 +131,8 @@ end
 to setup-patches
   let x (- WorldLength)
   let y WorldLength
-  
-  let halfGridSize round ( GridSize / 2 )
+  let gridSize 2                                                         ;; x + 1 => x by x size for each grid
+  let halfGridSize round ( gridSize / 2 )
   let containerX (- WorldLength) + halfGridSize
   let containerY WorldLength - halfGridSize
   let c 0
@@ -154,12 +154,12 @@ to setup-patches
                   ]
              ]
              set c c + 1 
-             set containerX containerX + GridSize
+             set containerX containerX + gridSize
          ]
-         set x x + GridSize
+         set x x + gridSize
      ]
      ; containerX/Y are separate because they mark the inside of grids and x y mark the outside
-     set containerY containerY - GridSize      
+     set containerY containerY - gridSize      
      set containerX (- WorldLength) + halfGridSize
      set y y - 1 
      set x (- WorldLength)
@@ -211,9 +211,6 @@ end
 to go
   if not any? viruses [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" stop ] 
 
-
-
-  
   ;; Kill viruses by probability specified to prevent over population 
   ask viruses [ if random-float 100 < DeathProbability [ die ] ] 
   
@@ -285,15 +282,7 @@ end
 ;; Input: sequence list of 0s and/or 1s
 ;; Returns: the mutated sequence, randomly
 to-report mutateSequence [ s ]
-    let r [ ]
-    foreach s [
-       ifelse random-float  100 < MutationProbability [
-            set r lput one-of [0 1] r
-        ][
-          set r lput ? r
-        ]
-    ]
-    report r
+    report map [ifelse-value (random-float 100.0 < MutationProbability) [one-of [0 1]] [?]] s
 end
 
 ;; Input: Container Number
@@ -384,22 +373,68 @@ to-report getDiversity
   report result
 end
 
-
+;; uri 
 to-report hammingDistance [sequence1 sequence2]
-  if length sequence1 = length sequence2 [ 
+  if length sequence1 = length sequence2 [ ;; 
       report (length remove true (map [?1 = ?2] sequence1 sequence2))
   ]
   report false
 end
+
+
+
+;; This procedure causes random mutations to occur in a solution's bits.
+;; The probability that each bit will be flipped is controlled by the
+;; MUTATION-RATE slider.
+;to mutate   ;; turtle procedure
+;  set bits map [ifelse-value (random-float 100.0 < mutation-rate) [1 - ?] [?]]
+;               bits
+;end
+
+;; ===== Diversity Measures
+
+;;; Our diversity measure is the mean of all-pairs Hamming distances between
+;;; the genomes in the population.
+;to-report diversity
+;  let distances []
+;  ask turtles [
+;    let bits1 bits
+;    ask turtles with [self > myself] [
+;      set distances fput (hamming-distance bits bits1) distances
+;    ]
+;  ]
+;  ; The following  formula calculates how much 'disagreement' between genomes
+;  ; there could possibly be, for the current population size.
+;  ; This formula may not be immediately obvious, so here's a sketch of where
+;  ; it comes from.  Imagine a population of N turtles, where N is even, and each
+;  ; turtle has  only a single bit (0 or 1).  The most diverse this population
+;  ; can be is if half the turtles have 0 and half have 1 (you can prove this
+;  ; using calculus!). In this case, there are (N / 2) * (N / 2) pairs of bits
+;  ; that differ.  Showing that essentially the same formula (rounded down by
+;  ; the floor function) works when N is odd, is left as an exercise to the reader.
+;  let max-possible-distance-sum floor (count turtles * count turtles / 4)
+;
+;  ; Now, using that number, we can normalize our diversity measure to be
+;  ; between 0 (completely homogeneous population) and 1 (maximally heterogeneous)
+;  report (sum distances) / max-possible-distance-sum
+;end
+
+;; The Hamming distance between two bit sequences is the fraction
+;; of positions at which the two sequences have different values.
+;; We use MAP to run down the lists comparing for equality, then
+;; we use LENGTH and REMOVE to count the number of inequalities.
+;to-report hamming-distance [bits1 bits2]
+;  report (length remove true (map [?1 = ?2] bits1 bits2)) / world-width
+;end
 @#$#@#$#@
 GRAPHICS-WINDOW
 242
 10
-487
-216
-3
-3
-25.0
+762
+551
+8
+8
+30.0
 1
 9
 1
@@ -409,10 +444,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--3
-3
--3
-3
+-8
+8
+-8
+8
 0
 0
 1
@@ -445,7 +480,7 @@ WorldLength
 WorldLength
 2
 8
-3
+8
 1
 1
  by X
@@ -492,7 +527,7 @@ MutationProbability
 MutationProbability
 1
 100
-7
+10
 1
 1
 % per a base
@@ -559,10 +594,10 @@ NIL
 1
 
 OUTPUT
-234
-384
-794
-541
+798
+374
+1358
+531
 12
 
 MONITOR
@@ -671,7 +706,7 @@ VirusSequenceLength
 VirusSequenceLength
 4
 100
-4
+10
 1
 1
 bits
