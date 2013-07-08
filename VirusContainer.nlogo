@@ -151,7 +151,6 @@ to setup-patches
   let containerX (- WorldLength) + halfGridSize
   let containerY WorldLength - halfGridSize
   let c 0
-  graphics:set-text-color DrawSequenceColor
   
   ; Iterate over patches, top to bottom, right to left
   while [ y >= (- WorldLength) ] [
@@ -164,9 +163,6 @@ to setup-patches
          if (containerY >= (- WorldLength) and containerX <= WorldLength ) [
              ask patch containerX containerY [  
                  set container c
-                 if DebugDraw [
-                     graphics:draw-text containerX (containerY + 0.7) "C"  reduce word (item c ContainerSequence) 
-                  ]
              ]
              set c c + 1 
              set containerX containerX + gridSize
@@ -183,15 +179,17 @@ to setup-patches
 end
 
 
-;; Draws the amount of viruses above each container
+;; Draws the amount of viruses and sequence of container above each container
+;; 
 to drawVirusCounts
-  graphics:set-text-color DrawVirusCountColor
+  clear-drawing  
   let i 0
-  while [ i < GridCount ] [
+  repeat GridCount  [
       let xy [ ]
       ask patches with [container = i] [ set xy (list pxcor pycor) ]
-      ;clear-drawing       could be used but I would need to redraw the container sequences
-      graphics:fill-rectangle (item 0 xy - 0.9 )  (item 1 xy + 1.4) 2 0.5
+      graphics:set-text-color DrawSequenceColor
+      graphics:draw-text item 0 xy (item 1 xy + 0.7) "C"  reduce word (item i ContainerSequence) 
+      graphics:set-text-color DrawVirusCountColor
       graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word count viruses-on patches with [container = i])
       set i i + 1
   ]
