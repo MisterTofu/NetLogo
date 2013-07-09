@@ -4,7 +4,7 @@
 ;; Notes:
 
 
-extensions [graphics]
+extensions [graphics table]
 
 globals [
 
@@ -29,6 +29,8 @@ globals [
   DrawSequenceColor       ;; Color of sequence drawn eg 0 1 0
   DrawVirusCountColor     ;; Color of number of viruses drawn 
   
+  VirusGenotypes          ;; Virus genotypes, dictionary 
+  TotalVirusGenotypes
   
   ;;Plotting Vars
   Diversity
@@ -69,9 +71,6 @@ end
 ;;;;;;;;;;;;;;;;;;;;;
 
 to setup-variables
-  set VirusSequence [0]
-  set DrugSequence [ 0 0 0 0 ]
-  
   ;;;;;;;;;;;;;;;;;;;;; 
   ;; World Variables ;;
   ;;;;;;;;;;;;;;;;;;;;;
@@ -79,8 +78,14 @@ to setup-variables
 
   set GridCount WorldLength * WorldLength                                ;; Number of grids
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world min-pxcor max-pxcor min-pycor max-pycor 
-;  ifelse WorldLength <= 5 [ set-patch-size 25 ] [ set-patch-size 20 ]    ;; resize patches
   
+  set VirusGenotypes table:make
+  set TotalVirusGenotypes table:make
+  
+  set VirusSequence [0]
+  set DrugSequence [ 0 0 0 0 ]
+  
+
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Mutation Variables ;;
@@ -208,7 +213,11 @@ to setup-viruses [ n ]
        set size 0.5
        set color red                                                         ;; Make virus red
        set containerNumber random (GridCount - 1)                            ;; Throws error if not const
-       set sequence n-values VirusSequenceLength [one-of VirusSequence]      ;; Create a random virus sequence 
+       set sequence n-values VirusSequenceLength [one-of VirusSequence]      ;; Create a random virus sequence        
+       incrementGenotype containerNumber sequence
+       incrementTotalGenotype sequence
+       
+
        set TotalViruses TotalViruses + 1
        let c containerNumber                                                 ;; Wont allow turtle context, set temp var      
        move-to one-of patches with [ container =  c]
@@ -216,6 +225,22 @@ to setup-viruses [ n ]
   ]
   if DebugDraw [ drawVirusCounts ]
 end
+
+
+to incrementTotalGenotype [ seq ]
+    ifelse not (table:has-key? TotalVirusGenotypes seq) [ table:put TotalVirusGenotypes seq 1 ]
+    [ table:put TotalVirusGenotypes seq (table:get TotalVirusGenotypes seq) + 1 ]
+end
+
+to incrementGenotype [ cont seq ]
+  if not (table:has-key? VirusGenotypes cont) [ table:put VirusGenotypes cont table:make ]
+  ifelse table:has-key? (table:get VirusGenotypes cont) seq [
+      table:put (table:get VirusGenotypes cont) seq (table:get (table:get VirusGenotypes cont) seq) + 1
+  ][
+      table:put (table:get VirusGenotypes cont) seq 1
+  ]
+end
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   Go   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -253,9 +278,8 @@ to replicate
     hatch-viruses 1  [ 
          ;; Mutate the parents sequence
          set sequence (mutateSequence parent)
-         
-         set color scale-color red (frequency 1 sequence) 10 0
 
+         set color scale-color red (frequency 1 sequence) 10 0
 
          let mutation [ ]                    
          let partition partitionSequence sequence (length one-of ContainerSequence)        ;; Partition sequence to the size of mutation
@@ -275,8 +299,19 @@ to replicate
              ]
              set i i + 1
          ]       
+         incrementGenotype containerNumber sequence
+         incrementTotalGenotype sequence
          set TotalViruses TotalViruses + 1
     ]
+end
+
+to printVirusGenotypes
+   foreach table:to-list virusgenotypes [ 
+         print item 0 ? 
+         foreach table:to-list (item 1 ?) [
+           output-print (word item 0 ? " ==> " item 1 ?)
+         ]
+   ]
 end
 
 ;;  Creates a list from the sequence of mSize
