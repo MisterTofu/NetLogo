@@ -3,7 +3,7 @@
 ;; Description: Memory efficient, no breeds. Could easily be done in other languages
 
 ;; Death-Rate: (VirusCount * DeathProbability * 2)
-
+;; Previous Virus Count: Current Virus Count / 2 / DeathProbability
 
 extensions [graphics table array]
 
@@ -25,7 +25,8 @@ globals [
    
    VirusSequence
    VirusSequenceLength 
-   
+   DeathRate
+   Dead
    VirusCount
    TotalVirusCount
    ContainerVirusCounts
@@ -88,7 +89,7 @@ end
 to go
   ;; Check virus die
   ;; check replication
-  if VirusCount = 0 [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" stop ] 
+  if VirusCount = 0 [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" if DebugDraw [ drawVirusCounts ] stop ] 
   ;;this needs to go foreach
   kill-virus
   ;; All containers infected?
@@ -153,33 +154,37 @@ end
 
 
 to kill-virus 
-
          foreach table:to-list VirusGenotypes [
              let contKey item 0 ?
              
              foreach (table:to-list item 1 ?) [
-                  if random-float 100.0 < DeathProbability [ 
-                 let seqKey item 0 ?
-                 let num item 1 ?
-                 
-                 ifelse num = 1 [
-                     table:remove (table:get VirusGenotypes contKey) seqKey
-                     if table:length (table:get VirusGenotypes contKey) = 0 [
-                         table:remove VirusGenotypes contKey
-                     ]
-                 ][
-                     table:put (table:get VirusGenotypes contKey) seqKey (num - 1)
-                 ]
-                 set num table:get TotalVirusGenotypes seqKey
-                 
-                 ifelse num = 1 [
-                     table:remove TotalVirusGenotypes seqKey
-                 ][
-                     table:put TotalVirusGenotypes seqKey (num - 1)
-                 ]
-                 array:set ContainerVirusCounts contKey ((array:item ContainerVirusCounts contKey) - 1)
-                 set VirusCount VirusCount - 1
+                repeat (item 1 ?) [
+               if random-float 100.0 < DeathProbability [ 
+                        let seqKey item 0 ?
+                        let num item 1 ?
+                        
+                        ifelse num = 1 [
+                            table:remove (table:get VirusGenotypes contKey) seqKey
+                            if table:length (table:get VirusGenotypes contKey) = 0 [
+                                table:remove VirusGenotypes contKey
+                            ]
+                        ][
+                            table:put (table:get VirusGenotypes contKey) seqKey (num - 1)
+                        ]
+                        
+;                        set num table:get TotalVirusGenotypes seqKey
+;                        
+;                        ifelse num = 1 [
+;                            table:remove TotalVirusGenotypes seqKey
+;                        ][
+;                            table:put TotalVirusGenotypes seqKey (num - 1)
+;                        ]
+                        array:set ContainerVirusCounts contKey ((array:item ContainerVirusCounts contKey) - 1)
+                        set VirusCount VirusCount - 1
+                        set Dead Dead + 1
+                        if TotalVirusCount > 0 [ set DeathRate (Dead / TotalVirusCount) * 100 ] ; needs to be reported at time, or the virus count grows and throws off the true death rate
              ]
+                ]
          
          ]
      
@@ -222,7 +227,13 @@ to create-viruses [ n ]
 end
 
 
-
+to-report getTotalVirusGenotypeCount
+     let result 0
+     foreach table:to-list TotalVirusGenotypes [
+         set result result + item 1 ?
+     ]
+     report result
+end
 
 to printVirusGenotypes
    foreach table:to-list virusgenotypes [ 
@@ -429,7 +440,7 @@ MutationProbability
 MutationProbability
 0
 100
-30
+25
 1
 1
 %
@@ -444,7 +455,7 @@ DeathProbability
 DeathProbability
 0
 100
-10
+5
 1
 1
 %
@@ -483,7 +494,7 @@ ReplicationProbability
 ReplicationProbability
 1
 100
-100
+50
 1
 1
 %
@@ -564,11 +575,11 @@ MutationCount / VirusCount * 100
 MONITOR
 112
 397
-196
+197
 442
-Death Count
-TotalVirusCount - VirusCount
-17
+Death rate%
+(TotalVirusCount - VirusCount) / TotalVirusCount * 100
+4
 1
 11
 
