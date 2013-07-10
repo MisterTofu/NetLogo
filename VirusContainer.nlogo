@@ -250,10 +250,10 @@ to go
   if not any? viruses [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" stop ] 
 
   ;; Kill viruses by probability specified to prevent over population 
-  ask viruses [ if random-float 100 < DeathProbability [ die ] ] 
+  ask viruses [ if random-float 100.0 < DeathProbability [ die ] ] 
   
   ;; Replicate viruses by probability specified
-  ask viruses [ if random-float 100 < ReplicationProbability [ replicate ] ]
+  ask viruses [ if random-float 100.0 < ReplicationProbability [ replicate ] ]
   
   ;; Update diversity variable for graphing
   set Diversity getDiversity
@@ -562,7 +562,7 @@ DeathProbability
 DeathProbability
 0
 100
-5
+0
 1
 1
 %
@@ -603,7 +603,7 @@ ReplicationProbability
 ReplicationProbability
 0
 100
-50
+100
 1
 1
 %

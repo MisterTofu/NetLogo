@@ -2,6 +2,8 @@
 ;; Author: Travis A. Ebesu
 ;; Description: Memory efficient, no breeds. Could easily be done in other languages
 
+;; Death-Rate: (VirusCount * DeathProbability * 2)
+
 
 extensions [graphics table array]
 
@@ -25,6 +27,7 @@ globals [
    VirusSequenceLength 
    
    VirusCount
+   TotalVirusCount
    ContainerVirusCounts
 ]
 
@@ -77,7 +80,7 @@ to setup
   
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "monoSpaced" "Bold" 13
-  
+  if DebugDraw [ drawVirusCounts ]
   reset-ticks
 end
 
@@ -85,18 +88,19 @@ end
 to go
   ;; Check virus die
   ;; check replication
-  
+  if VirusCount = 0 [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" stop ] 
   ;;this needs to go foreach
-;  if random-float 100 < DeathProbability [ kill-virus ]
+  kill-virus
   ;; All containers infected?
   replicate
+  if DebugDraw [ drawVirusCounts ]
   if getInfectedCount = GridCount [ output-print (word "\n\n\n\n--[[ All Containers Infected ]]--\n" date-and-time) stop ]
+  
   tick 
 end
 
 ;; Clean this up later
 to replicate
-   let j 0
    let temp table:make 
 ;   print (word "\n\n\n\n\n\n\nLength of VirusGenotypes: " length table:to-list VirusGenotypes)
    foreach table:to-list VirusGenotypes [    
@@ -105,7 +109,6 @@ to replicate
          foreach table:to-list (item 1 ?) [
 ;                 print(word " -Sequence: " item 0 ?)
                  repeat (item 1 ?) [
-                    set j j + 1
                     if random-float 100.0 < ReplicationProbability [
                           let sequence mutateSequence (item 0 ?)
                           let mutation [ ]
@@ -127,7 +130,7 @@ to replicate
                           ]  
                           array:set ContainerVirusCounts localContainerNumber ((array:item ContainerVirusCounts localContainerNumber) + 1)
                           set VirusCount VirusCount + 1
-
+                          set TotalVirusCount TotalVirusCount + 1
                           incrementDict temp  localContainerNumber  sequence                          
                     ]
                  ]
@@ -150,23 +153,37 @@ end
 
 
 to kill-virus 
-    let cont one-of table:to-list VirusGenotypes 
-    let contKey item 0 cont
-    let geno one-of table:to-list (item 1 cont)
-    output-print (word item 0 geno " ==> " item 1 geno)
-    let seqKey item 0 geno
-    let num item 1 geno
-    
-   
-    ifelse num = 1 [
-        table:remove (table:get VirusGenotypes contKey) seqKey
-        if table:length (table:get VirusGenotypes contKey) = 0 [
-            table:remove VirusGenotypes contKey
-        ]
-    ][
-        table:put (table:get VirusGenotypes contKey) seqKey (num - 1)
-    ]
-    
+
+         foreach table:to-list VirusGenotypes [
+             let contKey item 0 ?
+             
+             foreach (table:to-list item 1 ?) [
+                  if random-float 100.0 < DeathProbability [ 
+                 let seqKey item 0 ?
+                 let num item 1 ?
+                 
+                 ifelse num = 1 [
+                     table:remove (table:get VirusGenotypes contKey) seqKey
+                     if table:length (table:get VirusGenotypes contKey) = 0 [
+                         table:remove VirusGenotypes contKey
+                     ]
+                 ][
+                     table:put (table:get VirusGenotypes contKey) seqKey (num - 1)
+                 ]
+                 set num table:get TotalVirusGenotypes seqKey
+                 
+                 ifelse num = 1 [
+                     table:remove TotalVirusGenotypes seqKey
+                 ][
+                     table:put TotalVirusGenotypes seqKey (num - 1)
+                 ]
+                 array:set ContainerVirusCounts contKey ((array:item ContainerVirusCounts contKey) - 1)
+                 set VirusCount VirusCount - 1
+             ]
+         
+         ]
+     
+     ]
 end
 
 to drawVirusCounts
@@ -177,16 +194,21 @@ to drawVirusCounts
   repeat GridCount  [
       let xy [ ]
       ask patches with [container = i] [ set xy (list pxcor pycor) ]
-      print xy
       graphics:set-text-color DrawSequenceColor
       graphics:draw-text item 0 xy (item 1 xy + 0.7) "C"  reduce word (item i ContainerSequence) 
-      graphics:set-text-color DrawVirusCountColor
-;      graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word count viruses-on patches with [container = i])
+      let c array:item ContainerVirusCounts i
+      ifelse c > 0 [ 
+          graphics:set-text-color rgb 200 3 3
+      ][ graphics:set-text-color DrawVirusCountColor ]
+      graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word array:item ContainerVirusCounts i)
       set i i + 1
   ]
 end
 
 
+
+
+;; double check this implementation when spawning more than 1 virus, for Virusgenotypes and totalvirusgenotypes
 to create-viruses [ n ]
   repeat n [
      let sequence n-values VirusSequenceLength [one-of VirusSequence]      ;; Create a random virus seq
@@ -195,6 +217,7 @@ to create-viruses [ n ]
      incrementTotalGenotype sequence 
      array:set ContainerVirusCounts c ((array:item ContainerVirusCounts c) + 1)
      set VirusCount VirusCount + 1
+     set TotalVirusCount TotalVirusCount + 1
   ]
 end
 
@@ -406,7 +429,7 @@ MutationProbability
 MutationProbability
 0
 100
-54
+30
 1
 1
 %
@@ -421,7 +444,7 @@ DeathProbability
 DeathProbability
 0
 100
-50
+10
 1
 1
 %
@@ -454,7 +477,7 @@ OUTPUT
 SLIDER
 11
 135
-198
+209
 168
 ReplicationProbability
 ReplicationProbability
@@ -463,13 +486,13 @@ ReplicationProbability
 100
 1
 1
-NIL
+%
 HORIZONTAL
 
 MONITOR
 7
 396
-126
+93
 441
 Infected Containers
 getInfectedCount
@@ -488,23 +511,66 @@ VirusCount
 1
 11
 
-PLOT
-881
-113
-1081
-263
-plot 1
+BUTTON
+120
+181
+190
+214
+Go * 5
+repeat 5 [ go ]
+NIL
+1
+T
+OBSERVER
 NIL
 NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot diversity"
+NIL
+NIL
+1
+
+SWITCH
+105
+457
+233
+490
+DebugDraw
+DebugDraw
+0
+1
+-1000
+
+MONITOR
+8
+502
+98
+547
+NIL
+MutationCount
+0
+1
+11
+
+MONITOR
+118
+503
+215
+548
+Mutation Rate %
+MutationCount / VirusCount * 100
+4
+1
+11
+
+MONITOR
+112
+397
+196
+442
+Death Count
+TotalVirusCount - VirusCount
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
