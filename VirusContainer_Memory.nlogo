@@ -3,7 +3,7 @@
 ;; Description: Memory efficient, no breeds. Could easily be done in other languages
 
 
-extensions [graphics table]
+extensions [graphics table array]
 
 globals [
 
@@ -11,8 +11,7 @@ globals [
    GridCount
    
 
-
-
+   MutationCount
    ContainerSequence       ;; Mutation sequence for each container
    AdjacentContainers
    
@@ -24,6 +23,9 @@ globals [
    
    VirusSequence
    VirusSequenceLength 
+   
+   VirusCount
+   ContainerVirusCounts
 ]
 
 ;; For debugging purposes
@@ -33,10 +35,10 @@ patches-own [
 
 to setup
   clear-all
-  reset-ticks
+
   set WorldLength 8 
   set VirusSequenceLength 10
-  set VirusSequence [ 0 ]
+  set VirusSequence [ 0 1 ]
   
   let MutationLength 7
 
@@ -50,8 +52,8 @@ to setup
 
   set VirusGenotypes table:make
   set TotalVirusGenotypes table:make
-  
   let i 0
+  set ContainerVirusCounts array:from-list n-values GridCount [0]
   repeat GridCount [
 
 ;      Set the containers sequence to their respective number in binary      
@@ -59,7 +61,7 @@ to setup
 ;      set ContainerSequence lput (sentence temp (n-values (MutationLength - length temp) [0])) ContainerSequence
 
      set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
-
+     
      ;; Partition the sequences to the same size
      let partition partitionSequence (item i ContainerSequence) (length DrugSequence)
      
@@ -72,17 +74,78 @@ to setup
     
   setup-patches 
   create-viruses 1
-    
+  
+  graphics:initialize  min-pxcor max-pycor patch-size
+  graphics:set-font "monoSpaced" "Bold" 13
+  
+  reset-ticks
 end
 
 
 to go
   ;; Check virus die
   ;; check replication
-  if random-float 100 < DeathProbability [ kill-virus ]
+  
+  ;;this needs to go foreach
+;  if random-float 100 < DeathProbability [ kill-virus ]
   ;; All containers infected?
+  replicate
   if getInfectedCount = GridCount [ output-print (word "\n\n\n\n--[[ All Containers Infected ]]--\n" date-and-time) stop ]
   tick 
+end
+
+;; Clean this up later
+to replicate
+   let j 0
+   let temp table:make 
+;   print (word "\n\n\n\n\n\n\nLength of VirusGenotypes: " length table:to-list VirusGenotypes)
+   foreach table:to-list VirusGenotypes [    
+         let containerNumber item 0 ?
+;          print(word "CN # " containerNumber)
+         foreach table:to-list (item 1 ?) [
+;                 print(word " -Sequence: " item 0 ?)
+                 repeat (item 1 ?) [
+                    set j j + 1
+                    if random-float 100.0 < ReplicationProbability [
+                          let sequence mutateSequence (item 0 ?)
+                          let mutation [ ]
+                          let partition partitionSequence sequence (length one-of ContainerSequence)        ;; Partition sequence to the size of mutation
+                          let adjacent shuffle (item containerNumber AdjacentContainers)                    ;; Mix up the container numbers to get a random 
+                          let localContainerNumber containerNumber
+                          foreach adjacent [ set mutation lput item ? ContainerSequence mutation ]          ;; Get mutation sequence from each container number
+;                          print (word " -Mutation:  " sequence )        
+                          let i 0
+                          ;; Check for matches, move them in the container if found
+                          while [ i < length mutation][
+                              if not (empty? filter [? = (item i mutation)] partition ) [
+                                  set MutationCount MutationCount + 1
+                                  set localContainerNumber item i adjacent
+                                  set i i + (length mutation)
+;                                  print (word " **Move container # " localContainerNumber) 
+                              ]
+                              set i i + 1
+                          ]  
+                          array:set ContainerVirusCounts localContainerNumber ((array:item ContainerVirusCounts localContainerNumber) + 1)
+                          set VirusCount VirusCount + 1
+
+                          incrementDict temp  localContainerNumber  sequence                          
+                    ]
+                 ]
+         ]
+   ]
+   
+   ;; merge temp dict and regular
+   foreach table:to-list temp [
+       let localContainerNumber item 0 ?
+       foreach table:to-list (item 1 ?) [
+           repeat item 1 ? [
+               incrementGenotype localContainerNumber item 0 ? 
+               incrementTotalGenotype item 0 ?
+           ]
+       ]
+   ]
+   
+;   print (word "Repeated " j)
 end
 
 
@@ -106,13 +169,37 @@ to kill-virus
     
 end
 
+to drawVirusCounts
+  let DrawSequenceColor rgb 255 255 255
+  let DrawVirusCountColor rgb 0 20 148
+  clear-drawing  
+  let i 0
+  repeat GridCount  [
+      let xy [ ]
+      ask patches with [container = i] [ set xy (list pxcor pycor) ]
+      print xy
+      graphics:set-text-color DrawSequenceColor
+      graphics:draw-text item 0 xy (item 1 xy + 0.7) "C"  reduce word (item i ContainerSequence) 
+      graphics:set-text-color DrawVirusCountColor
+;      graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word count viruses-on patches with [container = i])
+      set i i + 1
+  ]
+end
+
+
 to create-viruses [ n ]
   repeat n [
      let sequence n-values VirusSequenceLength [one-of VirusSequence]      ;; Create a random virus seq
-     incrementGenotype (random (GridCount - 1))  sequence                          
+     let c (random (GridCount - 1))
+     incrementGenotype c  sequence                          
      incrementTotalGenotype sequence 
+     array:set ContainerVirusCounts c ((array:item ContainerVirusCounts c) + 1)
+     set VirusCount VirusCount + 1
   ]
 end
+
+
+
 
 to printVirusGenotypes
    foreach table:to-list virusgenotypes [ 
@@ -123,6 +210,9 @@ to printVirusGenotypes
    ]
 end
 
+to-report diversity
+  report table:length totalvirusgenotypes
+end
 
 
 to-report getInfectedCount
@@ -130,7 +220,8 @@ to-report getInfectedCount
 end
 to printInfo
       output-print (word "Infected Containers: " table:length VirusGenotypes)
-      output-print VirusGenotypes
+      printVirusGenotypes
+;      output-print VirusGenotypes
 ;      output-print TotalVirusGenotypes
 end
 
@@ -226,6 +317,16 @@ to incrementTotalGenotype [ seq ]
     [ table:put TotalVirusGenotypes seq (table:get TotalVirusGenotypes seq) + 1 ]
 end
 
+to incrementDict [ dict cont seq ]
+  if not (table:has-key? dict cont) [ table:put dict cont table:make ]
+  ifelse table:has-key? (table:get dict cont) seq [
+      table:put (table:get dict cont) seq (table:get (table:get dict cont) seq) + 1
+  ][
+      table:put (table:get dict cont) seq 1
+  ]
+end
+
+
 to incrementGenotype [ cont seq ]
   if not (table:has-key? VirusGenotypes cont) [ table:put VirusGenotypes cont table:make ]
   ifelse table:has-key? (table:get VirusGenotypes cont) seq [
@@ -236,13 +337,13 @@ to incrementGenotype [ cont seq ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-345
+238
 10
-780
-466
+758
+551
 8
 8
-25.0
+30.0
 1
 10
 1
@@ -263,10 +364,10 @@ ticks
 30.0
 
 BUTTON
-150
-13
-216
-46
+8
+11
+74
+44
 Setup
 setup
 NIL
@@ -280,10 +381,10 @@ NIL
 1
 
 BUTTON
-237
-12
-300
-45
+95
+10
+158
+43
 Go
 go
 T
@@ -297,25 +398,25 @@ NIL
 1
 
 SLIDER
-13
-62
-198
-95
+6
+50
+191
+83
 MutationProbability
 MutationProbability
 0
 100
-8
+54
 1
 1
 %
 HORIZONTAL
 
 SLIDER
-15
-102
-194
-135
+8
+90
+187
+123
 DeathProbability
 DeathProbability
 0
@@ -327,10 +428,10 @@ DeathProbability
 HORIZONTAL
 
 BUTTON
-17
-149
-92
+18
 182
+93
+215
 Output
 printInfo
 NIL
@@ -344,11 +445,66 @@ NIL
 1
 
 OUTPUT
-10
-199
-326
-462
+6
+224
+234
+383
 12
+
+SLIDER
+11
+135
+198
+168
+ReplicationProbability
+ReplicationProbability
+1
+100
+100
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+7
+396
+126
+441
+Infected Containers
+getInfectedCount
+0
+1
+11
+
+MONITOR
+8
+449
+95
+494
+Virus Count
+VirusCount
+0
+1
+11
+
+PLOT
+881
+113
+1081
+263
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot diversity"
 
 @#$#@#$#@
 ## WHAT IS IT?
