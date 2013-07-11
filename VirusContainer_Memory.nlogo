@@ -30,6 +30,7 @@ globals [
    VirusCount
    TotalVirusCount
    ContainerVirusCounts
+   MutationLength
 ]
 
 ;; For debugging purposes
@@ -44,12 +45,12 @@ to setup
   set VirusSequenceLength 10
   set VirusSequence [ 0 1 ]
   
-  let MutationLength 7
+  set MutationLength 6
 
   
   set DrugSequence [ 0 0 0 0 ]
   set DrugContainers [ ]
-  set ContainerSequence [ ]   
+  
   set AdjacentContainers [ ]
   set GridCount WorldLength * WorldLength                                ;; Number of grids
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world 
@@ -58,19 +59,22 @@ to setup
   set TotalVirusGenotypes table:make
   let i 0
   set ContainerVirusCounts array:from-list n-values GridCount [0]
+  set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
+  
+  
   repeat GridCount [
 
 ;      Set the containers sequence to their respective number in binary      
 ;      let temp convertBinary i
 ;      set ContainerSequence lput (sentence temp (n-values (MutationLength - length temp) [0])) ContainerSequence
 
-     set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
+;     set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
      
      ;; Partition the sequences to the same size
-     let partition partitionSequence (item i ContainerSequence) (length DrugSequence)
+;     let partition partitionSequence (item i ContainerSequence) (length DrugSequence)
      
      ;; Check for a match with our drug sequence
-     if not (empty? filter [? = DrugSequence] partition ) [ set DrugContainers lput i DrugContainers ]
+;     if not (empty? filter [? = DrugSequence] partition ) [ set DrugContainers lput i DrugContainers ]
     
       set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
@@ -81,8 +85,161 @@ to setup
   
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "monoSpaced" "Bold" 13
-  if DebugDraw [ drawVirusCounts ]
+;  if DebugDraw [ drawVirusCounts ]
   reset-ticks
+end
+
+to setup-env
+    let n 2
+    let i 0
+    set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
+    array:set ContainerSequence 0 (n-values MutationLength [one-of [0 1]])
+    let b10 [ ]
+;    map [ifelse-value (random-float 100.0 < MutationProbability) [one-of [0 1]] [?]] s
+    let value 0
+    repeat GridCount [
+          
+          let constraints [ ]
+          let best [ ]
+          ;; current node array:item ContainerSequence i    
+          foreach (getAdjacentContainers i) [ 
+            ;; any constraints?
+            ifelse first array:item ContainerSequence ? = -1 [ 
+                  let pos n-of n n-values (MutationLength - 1) [?]
+                  let temp array:item ContainerSequence i
+                  
+                  foreach pos [ set temp replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
+                  array:set ContainerSequence ? temp ;;later make sure they are not the same
+            ][
+                   ifelse empty? best [  
+                       set best (map [?1 = ?2 = 1] (array:item ContainerSequence i) (array:item ContainerSequence ?))
+                   ][
+                       let temp (map [?1 = ?2 = 1] (array:item ContainerSequence i) (array:item ContainerSequence ?))
+                       if (length remove false temp) > (length remove false best) 
+                       [
+                           set best temp
+                       ]
+                   ]
+                   let temp [ ]
+                   foreach best [
+                       ifelse ? = true [
+                          set temp lput 1 temp
+                       ][ set temp lput 0 temp ]
+                   ]
+                   array:set ContainerSequence ? temp
+            ]
+          ]
+          
+          
+          
+;          ifelse empty? constraints [
+;               foreach (getAdjacentContainers i) [
+;                  let pos n-of n n-values (MutationLength - 1) [?]
+;                  let temp array:item ContainerSequence i
+;                  
+;                  foreach pos [ set temp replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
+;                  array:set ContainerSequence ? temp ;;later make sure they are not the same
+;               ]
+;          ][
+;              ;;find best match 
+;              foreach constraints [
+;                  if hammingdistance (array:item ContainerSequence ?) (array:item ContainerSequence i) > 2 [
+;;                    map [?1 = ?2] (array:item ContainerSequence ?) (array:item ContainerSequence i)
+;                    foreach array:item ContainerSequence ? [ 
+;;                        set temp replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] 
+;                        
+;                     ]
+;;                    array:set ContainerSequence ? temp ;;later make sure they are not the same
+;                    
+;                  ]
+;              ]
+;          ]
+    
+    
+    
+;        let k 3
+;        set b10 convertDecimal array:item ContainerSequence i
+;        foreach (getDownLeftContainers i) [                 
+;          let rem b10 mod 3
+;;          ifelse rem = 0 [
+;;              set value b10
+;;              foreach n-of n [ 1 2 4 8 16 32 ] [
+;;                  set value value + ?
+;;              ]
+;;              set value value mod GridCount
+;;          ][
+;            if rem = 0 [ set rem 3 ]
+;            if rem = 1 [ set rem 5 ]
+;            set b10 ifelse-value ((b10 + rem) > 63) [ (b10 - rem) ] [(b10 + rem)]
+;;          ]
+;          
+;          array:set ContainerSequence ? convertBinaryLength b10 MutationLength
+;          
+;;          if not (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? = n)[
+;;                let temp array:item ContainerSequence i
+;;                let pos n-of n n-values (MutationLength - 1) [?]
+;;                foreach pos [ 
+;;                     set temp replace-item ? temp ifelse-value (item ? temp = 1) [0] [1]
+;;                ]
+;;                array:set ContainerSequence ? temp
+;          
+;          ]
+;          
+         
+ 
+;        foreach (getDownLeftContainers i) [       
+;            ifelse first array:item ContainerSequence ? = -1 [
+;                let temp array:item ContainerSequence i
+;                let x ?
+;                let pos n-of n n-values (MutationLength - 1) [?]
+;                foreach pos [ array:set ContainerSequence x replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
+;            ][
+;            
+;                if (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > n)[
+;                    let diff (hammingDistance array:item ContainerSequence i array:item ContainerSequence ?) - n
+;                    let temp array:item ContainerSequence i
+;                    let x ?
+;                    let pos n-of diff n-values (MutationLength - 1) [?]
+;                    foreach pos [ array:set ContainerSequence x replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
+;                ]
+;            
+;            ]
+;          
+;            if not(first array:item ContainerSequence i = -1) and (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > n)[
+                
+;            let hd hammingDistance array:item ContainerSequence i array:item ContainerSequence ?
+;            while[ hd > n ] [
+                ;; we need to get a new sequence
+;                let temp array:item ContainerSequence i
+;                let x ?
+;                let pos n-of n n-values (MutationLength - 1) [?]
+;                foreach pos [ array:set ContainerSequence x replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
+;                
+;            ]
+;            ]
+
+        
+        set i i + 1
+    ]
+    
+end
+
+to draw-hd
+    let i 0
+   ; foreach array:to-list ContainerSequence [
+   repeat 5 [
+;          let xy [ ]
+;          ask patch with [container = i] [ set xy (list pxcor pycor)]
+
+          foreach (item i AdjacentContainers) [
+;              if  not (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? = 2) [
+              print (word "Container " i)
+              print (word "  " hammingDistance array:item ContainerSequence i array:item ContainerSequence ? "   <== Container # " ?)
+;              ]
+          ]
+          set i i + 1
+          
+    ]
 end
 
 
@@ -165,20 +322,20 @@ to kill-virus
                         
                         ifelse num = 1 [
                             table:remove (table:get VirusGenotypes contKey) seqKey
-                            if table:length (table:get VirusGenotypes contKey) = 0 [
-                                table:remove VirusGenotypes contKey
-                            ]
+;                            if table:length (table:get VirusGenotypes contKey) = 0 [
+;                                table:remove VirusGenotypes contKey
+;                            ]
                         ][
                             table:put (table:get VirusGenotypes contKey) seqKey (num - 1)
                         ]
                         
-;                        set num table:get TotalVirusGenotypes seqKey
-;                        
-;                        ifelse num = 1 [
-;                            table:remove TotalVirusGenotypes seqKey
-;                        ][
-;                            table:put TotalVirusGenotypes seqKey (num - 1)
-;                        ]
+                        
+                        set num table:get TotalVirusGenotypes seqKey
+                        ifelse num = 1 [
+                            table:remove TotalVirusGenotypes seqKey
+                        ][
+                            table:put TotalVirusGenotypes seqKey (num - 1)
+                        ]
                         array:set ContainerVirusCounts contKey ((array:item ContainerVirusCounts contKey) - 1)
                         set VirusCount VirusCount - 1
                         set Dead Dead + 1
@@ -190,28 +347,6 @@ to kill-virus
      
      ]
 end
-
-to drawVirusCounts
-  let DrawSequenceColor rgb 255 255 255
-  let DrawVirusCountColor rgb 0 20 148
-  clear-drawing  
-  let i 0
-  repeat GridCount  [
-      let xy [ ]
-      ask patches with [container = i] [ set xy (list pxcor pycor) ]
-      graphics:set-text-color DrawSequenceColor
-      graphics:draw-text item 0 xy (item 1 xy + 0.7) "C"  reduce word (item i ContainerSequence) 
-      let c array:item ContainerVirusCounts i
-      ifelse c > 0 [ 
-          graphics:set-text-color rgb 200 3 3
-      ][ graphics:set-text-color DrawVirusCountColor ]
-      graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word array:item ContainerVirusCounts i)
-      set i i + 1
-  ]
-end
-
-
-
 
 ;; double check this implementation when spawning more than 1 virus, for Virusgenotypes and totalvirusgenotypes
 to create-viruses [ n ]
@@ -244,6 +379,30 @@ to printVirusGenotypes
    ]
 end
 
+to incrementTotalGenotype [ seq ]
+    ifelse not (table:has-key? TotalVirusGenotypes seq) [ table:put TotalVirusGenotypes seq 1 ]
+    [ table:put TotalVirusGenotypes seq (table:get TotalVirusGenotypes seq) + 1 ]
+end
+
+to incrementDict [ dict cont seq ]
+  if not (table:has-key? dict cont) [ table:put dict cont table:make ]
+  ifelse table:has-key? (table:get dict cont) seq [
+      table:put (table:get dict cont) seq (table:get (table:get dict cont) seq) + 1
+  ][
+      table:put (table:get dict cont) seq 1
+  ]
+end
+
+
+to incrementGenotype [ cont seq ]
+  if not (table:has-key? VirusGenotypes cont) [ table:put VirusGenotypes cont table:make ]
+  ifelse table:has-key? (table:get VirusGenotypes cont) seq [
+      table:put (table:get VirusGenotypes cont) seq (table:get (table:get VirusGenotypes cont) seq) + 1
+  ][
+      table:put (table:get VirusGenotypes cont) seq 1
+  ]
+end
+
 to-report diversity
   report table:length totalvirusgenotypes
 end
@@ -252,6 +411,7 @@ end
 to-report getInfectedCount
   report table:length VirusGenotypes
 end
+
 to printInfo
       output-print (word "Infected Containers: " table:length VirusGenotypes)
       printVirusGenotypes
@@ -259,6 +419,24 @@ to printInfo
 ;      output-print TotalVirusGenotypes
 end
 
+to drawVirusCounts
+  let DrawSequenceColor rgb 255 255 255
+  let DrawVirusCountColor rgb 0 20 148
+  clear-drawing  
+  let i 0
+  repeat GridCount  [
+      let xy [ ]
+      ask patches with [container = i] [ set xy (list pxcor pycor) ]
+      graphics:set-text-color DrawSequenceColor
+      graphics:draw-text item 0 xy (item 1 xy + 0.7) "C"  reduce word (array:item ContainerSequence i) 
+      let c array:item ContainerVirusCounts i
+      ifelse c > 0 [ 
+          graphics:set-text-color rgb 200 3 3
+      ][ graphics:set-text-color DrawVirusCountColor ]
+      graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word array:item ContainerVirusCounts i)
+      set i i + 1
+  ]
+end
 
 
 to setup-patches
@@ -323,6 +501,28 @@ end
 
 ;; Input: Container Number
 ;; Returns: A list of container numbers that are immediately adjacent to the cell
+to-report getDownLeftContainers [ current ]
+  let containerNumbers [ ]
+  let result [ ]
+  
+  let edge (current mod WorldLength) ; left edge = 0 and right edge = (n - 1), where n = WorldLength
+  let row floor (current / WorldLength) ; Gets row # 0 - (n - 1), n = WorldLength
+  
+  ;;Check Right
+  if edge != (WorldLength - 1) and current < GridCount [ set containerNumbers lput (current + 1) containerNumbers ]
+
+  
+  ;;Check below
+  if row != (WorldLength - 1) [ set containerNumbers lput (current + WorldLength) containerNumbers ]
+  
+  report containerNumbers
+end
+
+
+
+
+;; Input: Container Number
+;; Returns: A list of container numbers that are immediately adjacent to the cell
 to-report getAdjacentContainers [ current ]
   let containerNumbers [ ]
   let result [ ]
@@ -345,30 +545,64 @@ to-report getAdjacentContainers [ current ]
   report containerNumbers
 end
 
-
-to incrementTotalGenotype [ seq ]
-    ifelse not (table:has-key? TotalVirusGenotypes seq) [ table:put TotalVirusGenotypes seq 1 ]
-    [ table:put TotalVirusGenotypes seq (table:get TotalVirusGenotypes seq) + 1 ]
-end
-
-to incrementDict [ dict cont seq ]
-  if not (table:has-key? dict cont) [ table:put dict cont table:make ]
-  ifelse table:has-key? (table:get dict cont) seq [
-      table:put (table:get dict cont) seq (table:get (table:get dict cont) seq) + 1
-  ][
-      table:put (table:get dict cont) seq 1
+;; Uri Wilensky
+to-report hammingDistance [sequence1 sequence2]
+  if length sequence1 = length sequence2 [ ;; 
+      report (length remove true (map [?1 = ?2] sequence1 sequence2))
   ]
+  report false
 end
 
 
-to incrementGenotype [ cont seq ]
-  if not (table:has-key? VirusGenotypes cont) [ table:put VirusGenotypes cont table:make ]
-  ifelse table:has-key? (table:get VirusGenotypes cont) seq [
-      table:put (table:get VirusGenotypes cont) seq (table:get (table:get VirusGenotypes cont) seq) + 1
-  ][
-      table:put (table:get VirusGenotypes cont) seq 1
+to-report convertBinaryLength [ num len ]
+  if num = 0 [ report [0] ]
+  
+  let k 2 ; change k to convert to different bases
+  let digit [ ]
+  while [ num != 0 ] [
+    let rem floor ( num mod k )
+    set num floor ( num / k )
+    set digit lput rem digit
   ]
+  let diff len - (length digit)
+  repeat diff [ set digit lput 0 digit ]
+  report digit
 end
+
+
+
+
+
+;; Input: number
+;; Returns: a list the number equivalent in binary 
+to-report convertBinary [ num ]
+  if num = 0 [ report [0] ]
+  
+  let k 2 ; change k to convert to different bases
+  let digit [ ]
+  while [ num != 0 ] [
+    let rem floor ( num mod k )
+    set num floor ( num / k )
+    set digit lput rem digit
+  ]
+  report digit
+end
+
+;; Input: list of binary
+;; Returns: the converted number in base 10
+to-report convertDecimal [ num ]
+  let i 0
+  let total 0
+  while [ i < length num ] [
+      if item i num = 1 [
+          set total total +  2 ^ i
+      ]
+      set i i + 1
+  ]
+  report total
+end
+
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 238
