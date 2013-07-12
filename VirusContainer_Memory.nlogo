@@ -62,20 +62,7 @@ to setup
   set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
   
   
-  repeat GridCount [
-
-;      Set the containers sequence to their respective number in binary      
-;      let temp convertBinary i
-;      set ContainerSequence lput (sentence temp (n-values (MutationLength - length temp) [0])) ContainerSequence
-
-;     set ContainerSequence lput (n-values MutationLength [one-of [0 1]]) ContainerSequence
-     
-     ;; Partition the sequences to the same size
-;     let partition partitionSequence (item i ContainerSequence) (length DrugSequence)
-     
-     ;; Check for a match with our drug sequence
-;     if not (empty? filter [? = DrugSequence] partition ) [ set DrugContainers lput i DrugContainers ]
-    
+  repeat GridCount [    
       set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
   ]
@@ -89,157 +76,202 @@ to setup
   reset-ticks
 end
 
-to setup-env
-    let n 2
-    let i 0
+to setup-env 
+      
+   while [not (withinN)] [    
+      env
+   ]
+   
+end
+
+to env
+    let i 8
     set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
     array:set ContainerSequence 0 (n-values MutationLength [one-of [0 1]])
-    let b10 [ ]
-;    map [ifelse-value (random-float 100.0 < MutationProbability) [one-of [0 1]] [?]] s
-    let value 0
-    repeat GridCount [
-          
-          let constraints [ ]
-          let best [ ]
-          ;; current node array:item ContainerSequence i    
-          foreach (getAdjacentContainers i) [ 
-            ;; any constraints?
-            ifelse first array:item ContainerSequence ? = -1 [ 
-                  let pos n-of n n-values (MutationLength - 1) [?]
-                  let temp array:item ContainerSequence i
-                  
-                  foreach pos [ set temp replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
-                  array:set ContainerSequence ? temp ;;later make sure they are not the same
-            ][
-                   ifelse empty? best [  
-                       set best (map [?1 = ?2 = 1] (array:item ContainerSequence i) (array:item ContainerSequence ?))
-                   ][
-                       let temp (map [?1 = ?2 = 1] (array:item ContainerSequence i) (array:item ContainerSequence ?))
-                       if (length remove false temp) > (length remove false best) 
-                       [
-                           set best temp
+    setSequences 0 getAdjacentContainers 0 
+    repeat 7 [ ; 64 / 8 - 1, to get every rows left most
+        setSequences i filter [ ? > i ] (getAdjacentContainers i)    
+        set i i + 8
+    ]
+    fixme
+    draw-hd     
+
+end
+
+to fixme
+      let i 0
+      repeat GridCount [
+             foreach (item i AdjacentContainers) [
+                   if not (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? = 2) [
+                       fix i
+                    ]
+             ]
+             set i i + 1
+       ]
+end
+
+
+to-report withinN
+   let i 0
+   repeat GridCount [
+          foreach (item i AdjacentContainers) [
+                if (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? = 0 or hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > 2) [
+                    report false
+                 ]
+          ]
+          set i i + 1
+    ]
+    report true
+end
+
+to fix [ i ]
+repeat GridCount [
+       foreach (item i AdjacentContainers) [
+           let hd hammingDistance array:item ContainerSequence i array:item ContainerSequence ? 
+           if not (hd = 2) [
+               ifelse (hd = 0) [
+                    array:set ContainerSequence i shuffle (array:item ContainerSequence i)
+               ][            
+               
+                   let diff (map [?1 = ?2] array:item ContainerSequence i array:item ContainerSequence ?)
+                   let temp array:item ContainerSequence i
+                   let pos n-of (MutationLength - 1) (n-values MutationLength [?])
+                   let x 0
+                   foreach shuffle (n-of (MutationLength - 1) (n-values MutationLength [?])) [
+                     ifelse x <= 2 [
+                          if item ? diff = false [
+                              set temp replace-item ? temp ifelse-value (item ? temp = 1) [ 0 ] [ 1 ]
+                              set x x + 1
+                          ]
+                       ][
+                           array:set ContainerSequence i temp
                        ]
                    ]
-                   let temp [ ]
-                   foreach best [
-                       ifelse ? = true [
-                          set temp lput 1 temp
-                       ][ set temp lput 0 temp ]
-                   ]
-                   array:set ContainerSequence ? temp
+               ]
             ]
-          ]
-          
-          
-          
-;          ifelse empty? constraints [
-;               foreach (getAdjacentContainers i) [
-;                  let pos n-of n n-values (MutationLength - 1) [?]
-;                  let temp array:item ContainerSequence i
-;                  
-;                  foreach pos [ set temp replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
-;                  array:set ContainerSequence ? temp ;;later make sure they are not the same
-;               ]
-;          ][
-;              ;;find best match 
-;              foreach constraints [
-;                  if hammingdistance (array:item ContainerSequence ?) (array:item ContainerSequence i) > 2 [
-;;                    map [?1 = ?2] (array:item ContainerSequence ?) (array:item ContainerSequence i)
-;                    foreach array:item ContainerSequence ? [ 
-;;                        set temp replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] 
-;                        
-;                     ]
-;;                    array:set ContainerSequence ? temp ;;later make sure they are not the same
-;                    
-;                  ]
-;              ]
-;          ]
-    
-    
-    
-;        let k 3
-;        set b10 convertDecimal array:item ContainerSequence i
-;        foreach (getDownLeftContainers i) [                 
-;          let rem b10 mod 3
-;;          ifelse rem = 0 [
-;;              set value b10
-;;              foreach n-of n [ 1 2 4 8 16 32 ] [
-;;                  set value value + ?
-;;              ]
-;;              set value value mod GridCount
-;;          ][
-;            if rem = 0 [ set rem 3 ]
-;            if rem = 1 [ set rem 5 ]
-;            set b10 ifelse-value ((b10 + rem) > 63) [ (b10 - rem) ] [(b10 + rem)]
-;;          ]
-;          
-;          array:set ContainerSequence ? convertBinaryLength b10 MutationLength
-;          
-;;          if not (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? = n)[
-;;                let temp array:item ContainerSequence i
-;;                let pos n-of n n-values (MutationLength - 1) [?]
-;;                foreach pos [ 
-;;                     set temp replace-item ? temp ifelse-value (item ? temp = 1) [0] [1]
-;;                ]
-;;                array:set ContainerSequence ? temp
-;          
-;          ]
-;          
-         
- 
-;        foreach (getDownLeftContainers i) [       
-;            ifelse first array:item ContainerSequence ? = -1 [
-;                let temp array:item ContainerSequence i
-;                let x ?
-;                let pos n-of n n-values (MutationLength - 1) [?]
-;                foreach pos [ array:set ContainerSequence x replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
-;            ][
-;            
-;                if (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > n)[
-;                    let diff (hammingDistance array:item ContainerSequence i array:item ContainerSequence ?) - n
-;                    let temp array:item ContainerSequence i
-;                    let x ?
-;                    let pos n-of diff n-values (MutationLength - 1) [?]
-;                    foreach pos [ array:set ContainerSequence x replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
-;                ]
-;            
-;            ]
-;          
-;            if not(first array:item ContainerSequence i = -1) and (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > n)[
-                
-;            let hd hammingDistance array:item ContainerSequence i array:item ContainerSequence ?
-;            while[ hd > n ] [
-                ;; we need to get a new sequence
-;                let temp array:item ContainerSequence i
-;                let x ?
-;                let pos n-of n n-values (MutationLength - 1) [?]
-;                foreach pos [ array:set ContainerSequence x replace-item ? temp ifelse-value (item ? temp = 1) [0] [1] ]
-;                
-;            ]
-;            ]
+       ]
+    ]
+end
 
-        
-        set i i + 1
+;; assign first node sequence
+to setSequences [ node nodeList ]
+    
+    foreach (nodeList) [
+        flipBits node ?
     ]
     
+    ;; check adjacent containers, we assigned for matching 
+    let common [ ]      
+    foreach (getAdjacentContainers item 0 nodeList) [
+        let temp ?
+        if length nodeList > 1 [
+           foreach (getAdjacentContainers item 1 nodeList) [
+               if temp = ? [ ;; common node
+                   set common ? ;; should only be one item I think
+               ]
+           ]
+        ]
+     ]
+    if (is-number? common) [
+        ;; set common node, based on the two adjacent nodes
+        let temp shuffle (array:item ContainerSequence (item random 1 nodeList))
+        while [ (hammingdistance temp array:item ContainerSequence (item 0 nodeList)) > 2 and (hammingdistance temp array:item ContainerSequence (item 1 nodeList)) > 2 ] [
+            set temp shuffle (array:item ContainerSequence (item random 1 nodeList))
+        ]
+        array:set ContainerSequence common temp
+        setSequences item 0 nodeList filter [ ? > (item 0 nodeList) and ? > (item 0 nodeList)] (getAdjacentContainers item 0 nodeList)
+    ]
+end
+
+to flipBits [ main secondary ]
+    if main < (GridCount - 1) and secondary < (Gridcount - 1) [
+                   
+    let n 2
+    let temp array:item ContainerSequence main
+    let pos n-of n (n-values (MutationLength - 1) [?]) ;; get two random positions in the sequence list
+    let i 0
+    repeat n [
+        set temp replace-item (item i pos) temp ifelse-value (item (item i pos) temp = 1) [ 0 ] [ 1 ]
+        set i i + 1
+    ]
+   array:set ContainerSequence secondary temp
+   ]
+end
+
+
+to check
+let i 0
+let results [ ]
+   repeat GridCount [
+;          let xy [ ]
+;          ask patch with [container = i] [ set xy (list pxcor pycor)]
+;          print (word "Container " i)
+          foreach (item i AdjacentContainers) [
+              if  (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > 2) [
+                set results lput (list i ? hammingDistance array:item ContainerSequence i array:item ContainerSequence ?) results
+
+              ]
+          ]
+          set i i + 1
+    ]
+
+    let out results
+    foreach results [
+        let j item 0 ?
+        let k item 1 ?
+        foreach results [
+            set i 0
+            if (j = item 1 ? and k = item 0 ?) [
+                set results remove-item i results                
+            ]
+            set i i + 1
+        ]
+    ]
+    
+    foreach out [ print (word "Container " item 0 ? " - " item 1 ? "  ==>  " item 2 ?) ]
+    print "\n\n"
+    foreach results [print (word "Container " item 0 ? " - " item 1 ? "  ==>  " item 2 ?) ]
 end
 
 to draw-hd
     let i 0
    ; foreach array:to-list ContainerSequence [
-   repeat 5 [
-;          let xy [ ]
-;          ask patch with [container = i] [ set xy (list pxcor pycor)]
 
-          foreach (item i AdjacentContainers) [
-;              if  not (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? = 2) [
-              print (word "Container " i)
-              print (word "  " hammingDistance array:item ContainerSequence i array:item ContainerSequence ? "   <== Container # " ?)
-;              ]
-          ]
-          set i i + 1
-          
-    ]
+
+  let DrawSequenceColor rgb 255 255 255
+  let DrawVirusCountColor rgb 0 20 148
+  clear-drawing  
+  repeat GridCount  [
+      let xy [ ]
+      ask patches with [container = i] [ set xy (list pxcor pycor) ]
+
+      graphics:set-text-color rgb 255 0 0
+      if (sum array:item ContainerSequence i) > 0 [
+          graphics:draw-text item 0 xy (item 1 xy + 0.7) "C"  reduce word (array:item ContainerSequence i) 
+      ]
+      graphics:set-text-color DrawSequenceColor
+      ; left, right, up, down
+      foreach getAdjacentContainers i [
+      if (sum array:item ContainerSequence ?) >= 0 and not ((hammingdistance array:item ContainerSequence i array:item ContainerSequence ?) = 2) [
+           ifelse ? > i [ ; to the right or bottom
+             ifelse (i + 1) = ? [ ; right
+                     graphics:draw-text (item 0 xy + 1) (item 1 xy) "C"  (word "" hammingdistance array:item ContainerSequence i array:item ContainerSequence ?) 
+             ][ ; bottom
+                  graphics:draw-text (item 0 xy) (item 1 xy - 1) "C"  (word "" hammingdistance array:item ContainerSequence i array:item ContainerSequence ?) 
+             ]
+           ][
+             ifelse (i - 1) = ? [ ; left
+                 graphics:draw-text (item 0 xy - 1) (item 1 xy) "C"  (word "" hammingdistance array:item ContainerSequence i array:item ContainerSequence ?) 
+             ][ ; up
+                 graphics:draw-text (item 0 xy) (item 1 xy + 1) "C"  (word "" hammingdistance array:item ContainerSequence i array:item ContainerSequence ?) 
+             ] 
+           ]
+        ]
+      ]
+      set i i + 1
+  ]
+  
+  ;  foreach array:to-list containersequence [ if (sum ?) > 0 [ print ? ] ]
 end
 
 
@@ -413,8 +445,9 @@ to-report getInfectedCount
 end
 
 to printInfo
-      output-print (word "Infected Containers: " table:length VirusGenotypes)
-      printVirusGenotypes
+
+;      output-print (word "Infected Containers: " table:length VirusGenotypes)
+;      printVirusGenotypes
 ;      output-print VirusGenotypes
 ;      output-print TotalVirusGenotypes
 end
@@ -601,8 +634,6 @@ to-report convertDecimal [ num ]
   ]
   report total
 end
-
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 238
@@ -637,7 +668,7 @@ BUTTON
 74
 44
 Setup
-setup
+setup\nsetup-env\n
 NIL
 1
 T
@@ -728,7 +759,7 @@ ReplicationProbability
 ReplicationProbability
 1
 100
-50
+100
 1
 1
 %
