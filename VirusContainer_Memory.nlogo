@@ -5,6 +5,8 @@
 ;; Death-Rate: (VirusCount * DeathProbability * 2)
 ;; Previous Virus Count: Current Virus Count / 2 / DeathProbability
 
+__includes [ "VirusGenotypes.nls" ]
+
 extensions [graphics table array]
 
 globals [
@@ -23,10 +25,7 @@ globals [
    VirusSequence
    VirusSequenceLength 
    
-   VirusGenotypes          ;; Virus genotypes, dictionary {[ ContainerNumber, {[sequence, count ], [sequence, count ]} ]}
-                           ;; The first dictionary key is the container number
-                           ;; The second dictionary holds the sequences and counts of each sequence in the respective container
-   TotalVirusGenotypes 
+
 
    VirusCount
    TotalVirusCount
@@ -39,9 +38,12 @@ patches-own [
   container
 ]
 
+
+
 to setup
   clear-all
-
+  initVirusGenotypes
+  set-histogram-num-bars 7
   set WorldLength 8 
   set VirusSequenceLength 10
   set VirusSequence [ 0 1 ]
@@ -56,8 +58,6 @@ to setup
   set GridCount WorldLength * WorldLength                                ;; Number of grids
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world 
 
-  set VirusGenotypes table:make
-  set TotalVirusGenotypes [ ]
   let i 0
   set ContainerVirusCounts array:from-list n-values GridCount [0]
   set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
@@ -336,8 +336,7 @@ to replicate
        let localContainerNumber item 0 ?
        foreach table:to-list (item 1 ?) [
            repeat item 1 ? [
-               incrementGenotype localContainerNumber item 0 ? 
-               incrementTotalGenotype item 0 ?
+               addGenotype localContainerNumber item 0 ? 
            ]
        ]
    ]
@@ -354,19 +353,10 @@ to kill-virus
                 repeat (item 1 ?) [
                if random-float 100.0 < DeathProbability [ 
                         let seqKey item 0 ?
-                        let num item 1 ?
+
                         
-                        ifelse num = 1 [
-                            table:remove (table:get VirusGenotypes contKey) seqKey
-;                            if table:length (table:get VirusGenotypes contKey) = 0 [
-;                                table:remove VirusGenotypes contKey
-;                            ]
-                        ][
-                            table:put (table:get VirusGenotypes contKey) seqKey (num - 1)
-                        ]
+                        removeGenotype contKey seqKey
                         
-                        
-;                        set TotalVirusGenotypes remove seqKey TotalVirusGenotypes
                         
                         array:set ContainerVirusCounts contKey ((array:item ContainerVirusCounts contKey) - 1)
                         set VirusCount VirusCount - 1
@@ -383,8 +373,7 @@ to create-viruses [ n ]
   repeat n [
      let sequence n-values VirusSequenceLength [one-of VirusSequence]      ;; Create a random virus seq
      let c (random (GridCount - 1))
-     incrementGenotype c  sequence                          
-     incrementTotalGenotype sequence 
+     addGenotype c  sequence                          
      array:set ContainerVirusCounts c ((array:item ContainerVirusCounts c) + 1)
      set VirusCount VirusCount + 1
      set TotalVirusCount TotalVirusCount + 1
@@ -392,28 +381,6 @@ to create-viruses [ n ]
 end
 
 
-to-report getTotalVirusGenotypeCount
-     let result 0
-     foreach TotalVirusGenotypes [
-         set result result + item 1 ?
-     ]
-     report result
-end
-
-to printVirusGenotypes
-   foreach table:to-list virusgenotypes [ 
-         print (word "Container Infected # " item 0 ? )
-         foreach table:to-list (item 1 ?) [
-           output-print (word item 0 ? " ==> " item 1 ?)
-         ]
-   ]
-end
-
-to incrementTotalGenotype [ seq ]
-;    ifelse not (table:has-key? TotalVirusGenotypes seq) [ table:put TotalVirusGenotypes seq 1 ]
- ;   [ table:put TotalVirusGenotypes seq (table:get TotalVirusGenotypes seq) + 1 ]
-  set TotalVirusGenotypes lput seq TotalVirusGenotypes
-end
 
 to incrementDict [ dict cont seq ]
   if not (table:has-key? dict cont) [ table:put dict cont table:make ]
@@ -424,28 +391,6 @@ to incrementDict [ dict cont seq ]
   ]
 end
 
-
-to incrementGenotype [ cont seq ]
-  if not (table:has-key? VirusGenotypes cont) [ table:put VirusGenotypes cont table:make ]
-  ifelse table:has-key? (table:get VirusGenotypes cont) seq [
-      table:put (table:get VirusGenotypes cont) seq (table:get (table:get VirusGenotypes cont) seq) + 1
-  ][
-      table:put (table:get VirusGenotypes cont) seq 1
-  ]
-end
-
-
-to-report getInfectedCount
-  report table:length VirusGenotypes
-end
-
-to printInfo
-
-;      output-print (word "Infected Containers: " table:length VirusGenotypes)
-;      printVirusGenotypes
-;      output-print VirusGenotypes
-;      output-print TotalVirusGenotypes
-end
 
 to drawVirusCounts
   let DrawSequenceColor rgb 255 255 255
@@ -527,24 +472,6 @@ to-report mutateSequence [ s ]
 end
 
 
-;; Input: Container Number
-;; Returns: A list of container numbers that are immediately adjacent to the cell
-to-report getDownLeftContainers [ current ]
-  let containerNumbers [ ]
-  let result [ ]
-  
-  let edge (current mod WorldLength) ; left edge = 0 and right edge = (n - 1), where n = WorldLength
-  let row floor (current / WorldLength) ; Gets row # 0 - (n - 1), n = WorldLength
-  
-  ;;Check Right
-  if edge != (WorldLength - 1) and current < GridCount [ set containerNumbers lput (current + 1) containerNumbers ]
-
-  
-  ;;Check below
-  if row != (WorldLength - 1) [ set containerNumbers lput (current + WorldLength) containerNumbers ]
-  
-  report containerNumbers
-end
 
 
 
@@ -629,6 +556,7 @@ to-report convertDecimal [ num ]
   ]
   report total
 end
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 238
@@ -720,23 +648,6 @@ DeathProbability
 1
 %
 HORIZONTAL
-
-BUTTON
-18
-182
-93
-215
-Output
-printInfo
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 OUTPUT
 6
@@ -842,6 +753,24 @@ Death rate%
 4
 1
 11
+
+PLOT
+789
+20
+989
+170
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram TotalVirusGenotypes"
 
 @#$#@#$#@
 ## WHAT IS IT?
