@@ -302,10 +302,10 @@ to replicate
                     if random-float 100.0 < ReplicationProbability [
                           let sequence mutateSequence (item 0 ?)
                           let mutation [ ]
-                          let partition partitionSequence sequence (length one-of ContainerSequence)        ;; Partition sequence to the size of mutation
+                          let partition partitionSequence sequence MutationLength        ;; Partition sequence to the size of mutation
                           let adjacent shuffle (item containerNumber AdjacentContainers)                    ;; Mix up the container numbers to get a random 
                           let localContainerNumber containerNumber
-                          foreach adjacent [ set mutation lput item ? ContainerSequence mutation ]          ;; Get mutation sequence from each container number
+                          foreach adjacent [ set mutation lput array:item ContainerSequence ? mutation ]          ;; Get mutation sequence from each container number
 ;                          print (word " -Mutation:  " sequence )        
                           let i 0
                           ;; Check for matches, move them in the container if found
@@ -697,15 +697,15 @@ NIL
 1
 
 SLIDER
-6
-50
-191
-83
+11
+129
+196
+162
 MutationProbability
 MutationProbability
 0
 100
-25
+15
 1
 1
 %
@@ -751,15 +751,15 @@ OUTPUT
 12
 
 SLIDER
-11
-135
-209
-168
+6
+48
+204
+81
 ReplicationProbability
 ReplicationProbability
 1
 100
-100
+50
 1
 1
 %
