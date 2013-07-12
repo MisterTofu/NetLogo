@@ -19,18 +19,19 @@ globals [
    
    DrugSequence 
    DrugContainers
-   
-   VirusGenotypes          ;; Virus genotypes, dictionary 
-   TotalVirusGenotypes
-   
+   MutationLength
    VirusSequence
    VirusSequenceLength 
-   DeathRate
-   Dead
+   
+   VirusGenotypes          ;; Virus genotypes, dictionary {[ ContainerNumber, {[sequence, count ], [sequence, count ]} ]}
+                           ;; The first dictionary key is the container number
+                           ;; The second dictionary holds the sequences and counts of each sequence in the respective container
+   TotalVirusGenotypes 
+
    VirusCount
    TotalVirusCount
    ContainerVirusCounts
-   MutationLength
+
 ]
 
 ;; For debugging purposes
@@ -56,7 +57,7 @@ to setup
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world 
 
   set VirusGenotypes table:make
-  set TotalVirusGenotypes table:make
+  set TotalVirusGenotypes [ ]
   let i 0
   set ContainerVirusCounts array:from-list n-values GridCount [0]
   set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
@@ -72,7 +73,8 @@ to setup
   
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "monoSpaced" "Bold" 13
-;  if DebugDraw [ drawVirusCounts ]
+  setup-env
+  if DebugDraw [ drawVirusCounts ]
   reset-ticks
 end
 
@@ -85,17 +87,19 @@ to setup-env
 end
 
 to env
-    let i 8
+    let i 0
+    ;; Create an array for the container sequences
     set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
+    ;; Randomly generate the first one
     array:set ContainerSequence 0 (n-values MutationLength [one-of [0 1]])
-    setSequences 0 getAdjacentContainers 0 
-    repeat 7 [ ; 64 / 8 - 1, to get every rows left most
+    
+    ;; Goes through each row, unable to call it completely recursively with current implementation
+    repeat 8 [ 
         setSequences i filter [ ? > i ] (getAdjacentContainers i)    
         set i i + 8
     ]
+    ;; Tries to match bits 
     fixme
-    draw-hd     
-
 end
 
 to fixme
@@ -110,7 +114,7 @@ to fixme
        ]
 end
 
-
+;; Checks if the entire grid is within a hamming distance of 1 or 2 of each adjacent cell
 to-report withinN
    let i 0
    repeat GridCount [
@@ -129,17 +133,19 @@ repeat GridCount [
        foreach (item i AdjacentContainers) [
            let hd hammingDistance array:item ContainerSequence i array:item ContainerSequence ? 
            if not (hd = 2) [
-               ifelse (hd = 0) [
+               ifelse (hd = 0) [ ;; Hamming distance = 0, just shuffle the bits
                     array:set ContainerSequence i shuffle (array:item ContainerSequence i)
                ][            
-               
+                   ;; Get list of matches between the two sequence
                    let diff (map [?1 = ?2] array:item ContainerSequence i array:item ContainerSequence ?)
                    let temp array:item ContainerSequence i
-                   let pos n-of (MutationLength - 1) (n-values MutationLength [?])
+
                    let x 0
+                   ;; Get the amount of positions in sequence, shuffle them
                    foreach shuffle (n-of (MutationLength - 1) (n-values MutationLength [?])) [
-                     ifelse x <= 2 [
-                          if item ? diff = false [
+                     ;; flip only two bits
+                     ifelse x <= 2 [ 
+                          if item ? diff = false [ ;; check if we have a disagreement, then flip the bit
                               set temp replace-item ? temp ifelse-value (item ? temp = 1) [ 0 ] [ 1 ]
                               set x x + 1
                           ]
@@ -153,14 +159,13 @@ repeat GridCount [
     ]
 end
 
-;; assign first node sequence
+;; set container sequences
 to setSequences [ node nodeList ]
     
-    foreach (nodeList) [
-        flipBits node ?
-    ]
+    ;; Flip two bits in the nodeList
+    foreach (nodeList) [ flipBits node ? ]
     
-    ;; check adjacent containers, we assigned for matching 
+    ;; check adjacent containers and check if they have a common container
     let common [ ]      
     foreach (getAdjacentContainers item 0 nodeList) [
         let temp ?
@@ -174,15 +179,18 @@ to setSequences [ node nodeList ]
      ]
     if (is-number? common) [
         ;; set common node, based on the two adjacent nodes
+        ;; with two bit switches from a common parent, shuffle the third one till it is the right hamming distance
         let temp shuffle (array:item ContainerSequence (item random 1 nodeList))
         while [ (hammingdistance temp array:item ContainerSequence (item 0 nodeList)) > 2 and (hammingdistance temp array:item ContainerSequence (item 1 nodeList)) > 2 ] [
             set temp shuffle (array:item ContainerSequence (item random 1 nodeList))
         ]
         array:set ContainerSequence common temp
+        ;; do the next container
         setSequences item 0 nodeList filter [ ? > (item 0 nodeList) and ? > (item 0 nodeList)] (getAdjacentContainers item 0 nodeList)
     ]
 end
-
+;; Flips two bits in container sequence,
+;; Inputs: parent index, child index
 to flipBits [ main secondary ]
     if main < (GridCount - 1) and secondary < (Gridcount - 1) [
                    
@@ -203,9 +211,6 @@ to check
 let i 0
 let results [ ]
    repeat GridCount [
-;          let xy [ ]
-;          ask patch with [container = i] [ set xy (list pxcor pycor)]
-;          print (word "Container " i)
           foreach (item i AdjacentContainers) [
               if  (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > 2) [
                 set results lput (list i ? hammingDistance array:item ContainerSequence i array:item ContainerSequence ?) results
@@ -235,7 +240,6 @@ end
 
 to draw-hd
     let i 0
-   ; foreach array:to-list ContainerSequence [
 
 
   let DrawSequenceColor rgb 255 255 255
@@ -362,16 +366,10 @@ to kill-virus
                         ]
                         
                         
-                        set num table:get TotalVirusGenotypes seqKey
-                        ifelse num = 1 [
-                            table:remove TotalVirusGenotypes seqKey
-                        ][
-                            table:put TotalVirusGenotypes seqKey (num - 1)
-                        ]
+;                        set TotalVirusGenotypes remove seqKey TotalVirusGenotypes
+                        
                         array:set ContainerVirusCounts contKey ((array:item ContainerVirusCounts contKey) - 1)
                         set VirusCount VirusCount - 1
-                        set Dead Dead + 1
-                        if TotalVirusCount > 0 [ set DeathRate (Dead / TotalVirusCount) * 100 ] ; needs to be reported at time, or the virus count grows and throws off the true death rate
              ]
                 ]
          
@@ -396,7 +394,7 @@ end
 
 to-report getTotalVirusGenotypeCount
      let result 0
-     foreach table:to-list TotalVirusGenotypes [
+     foreach TotalVirusGenotypes [
          set result result + item 1 ?
      ]
      report result
@@ -412,8 +410,9 @@ to printVirusGenotypes
 end
 
 to incrementTotalGenotype [ seq ]
-    ifelse not (table:has-key? TotalVirusGenotypes seq) [ table:put TotalVirusGenotypes seq 1 ]
-    [ table:put TotalVirusGenotypes seq (table:get TotalVirusGenotypes seq) + 1 ]
+;    ifelse not (table:has-key? TotalVirusGenotypes seq) [ table:put TotalVirusGenotypes seq 1 ]
+ ;   [ table:put TotalVirusGenotypes seq (table:get TotalVirusGenotypes seq) + 1 ]
+  set TotalVirusGenotypes lput seq TotalVirusGenotypes
 end
 
 to incrementDict [ dict cont seq ]
@@ -433,10 +432,6 @@ to incrementGenotype [ cont seq ]
   ][
       table:put (table:get VirusGenotypes cont) seq 1
   ]
-end
-
-to-report diversity
-  report table:length totalvirusgenotypes
 end
 
 
@@ -668,7 +663,7 @@ BUTTON
 74
 44
 Setup
-setup\nsetup-env\n
+setup\n\n
 NIL
 1
 T
