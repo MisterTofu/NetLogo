@@ -10,27 +10,23 @@ __includes [ "VirusGenotypes.nls" ]
 extensions [graphics table array]
 
 globals [
-
    WorldLength
    GridCount
    
-
    MutationCount
-   ContainerSequence       ;; Mutation sequence for each container
-   AdjacentContainers
+   ContainerSequence       ;; Mutation sequence for each container, [list]
+   AdjacentContainers      ;; Container Xs adjacent containers, [list]
    
    DrugSequence 
    DrugContainers
-   MutationLength
-   VirusSequence
-   VirusSequenceLength 
    
+   MutationLength
+   VirusSequence          ;; Sequence of the original virus
+   VirusSequenceLength 
 
-
-   VirusCount
-   TotalVirusCount
-   ContainerVirusCounts
-
+   VirusCount             ;; Keeps track of number of alive viruses
+   TotalVirusCount        ;; Keeps track of the total number of viruses
+   ContainerVirusCounts   ;; Keeps track of the number of alive viruses in respective containers
 ]
 
 ;; For debugging purposes
@@ -49,7 +45,6 @@ to setup
   set VirusSequence [ 0 1 ]
   
   set MutationLength 6
-
   
   set DrugSequence [ 0 0 0 0 ]
   set DrugContainers [ ]
@@ -57,12 +52,10 @@ to setup
   set AdjacentContainers [ ]
   set GridCount WorldLength * WorldLength                                ;; Number of grids
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world 
-
-  let i 0
   set ContainerVirusCounts array:from-list n-values GridCount [0]
   set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
   
-  
+  let i 0  
   repeat GridCount [    
       set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
@@ -70,20 +63,17 @@ to setup
     
   setup-patches 
   create-viruses 1
-  
   graphics:initialize  min-pxcor max-pycor patch-size
-  graphics:set-font "monoSpaced" "Bold" 13
+  graphics:set-font "MonoSpaced" "Bold" 13
   setup-env
   if DebugDraw [ drawVirusCounts ]
   reset-ticks
 end
 
 to setup-env 
-      
    while [not (withinN)] [    
       env
    ]
-   
 end
 
 to env
@@ -128,6 +118,7 @@ to-report withinN
     report true
 end
 
+;; Try to match the bits from container x 
 to fix [ i ]
 repeat GridCount [
        foreach (item i AdjacentContainers) [
@@ -161,7 +152,6 @@ end
 
 ;; set container sequences
 to setSequences [ node nodeList ]
-    
     ;; Flip two bits in the nodeList
     foreach (nodeList) [ flipBits node ? ]
     
@@ -189,6 +179,7 @@ to setSequences [ node nodeList ]
         setSequences item 0 nodeList filter [ ? > (item 0 nodeList) and ? > (item 0 nodeList)] (getAdjacentContainers item 0 nodeList)
     ]
 end
+
 ;; Flips two bits in container sequence,
 ;; Inputs: parent index, child index
 to flipBits [ main secondary ]
@@ -208,8 +199,8 @@ end
 
 
 to check
-let i 0
-let results [ ]
+   let i 0
+   let results [ ]
    repeat GridCount [
           foreach (item i AdjacentContainers) [
               if  (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > 2) [
@@ -239,9 +230,7 @@ let results [ ]
 end
 
 to draw-hd
-    let i 0
-
-
+  let i 0
   let DrawSequenceColor rgb 255 255 255
   let DrawVirusCountColor rgb 0 20 148
   clear-drawing  
@@ -296,12 +285,9 @@ end
 ;; Clean this up later
 to replicate
    let temp table:make 
-;   print (word "\n\n\n\n\n\n\nLength of VirusGenotypes: " length table:to-list VirusGenotypes)
-   foreach table:to-list VirusGenotypes [    
+   foreach table:to-list VirusGenotypes [     
          let containerNumber item 0 ?
-;          print(word "CN # " containerNumber)
          foreach table:to-list (item 1 ?) [
-;                 print(word " -Sequence: " item 0 ?)
                  repeat (item 1 ?) [
                     if random-float 100.0 < ReplicationProbability [
                           let sequence mutateSequence (item 0 ?)
@@ -310,7 +296,6 @@ to replicate
                           let adjacent shuffle (item containerNumber AdjacentContainers)                    ;; Mix up the container numbers to get a random 
                           let localContainerNumber containerNumber
                           foreach adjacent [ set mutation lput array:item ContainerSequence ? mutation ]          ;; Get mutation sequence from each container number
-;                          print (word " -Mutation:  " sequence )        
                           let i 0
                           ;; Check for matches, move them in the container if found
                           while [ i < length mutation][
@@ -318,7 +303,6 @@ to replicate
                                   set MutationCount MutationCount + 1
                                   set localContainerNumber item i adjacent
                                   set i i + (length mutation)
-;                                  print (word " **Move container # " localContainerNumber) 
                               ]
                               set i i + 1
                           ]  
@@ -340,32 +324,23 @@ to replicate
            ]
        ]
    ]
-   
-;   print (word "Repeated " j)
 end
 
 
 to kill-virus 
-         foreach table:to-list VirusGenotypes [
-             let contKey item 0 ?
-             
-             foreach (table:to-list item 1 ?) [
-                repeat (item 1 ?) [
-               if random-float 100.0 < DeathProbability [ 
-                        let seqKey item 0 ?
-
-                        
-                        removeGenotype contKey seqKey
-                        
-                        
-                        array:set ContainerVirusCounts contKey ((array:item ContainerVirusCounts contKey) - 1)
-                        set VirusCount VirusCount - 1
-             ]
-                ]
-         
-         ]
-     
-     ]
+    foreach table:to-list VirusGenotypes [
+        let contKey item 0 ?
+        foreach (table:to-list item 1 ?) [
+           repeat (item 1 ?) [
+              if random-float 100.0 < DeathProbability [ 
+                   let seqKey item 0 ?                        
+                   removeGenotype contKey seqKey
+                   array:set ContainerVirusCounts contKey ((array:item ContainerVirusCounts contKey) - 1)
+                   set VirusCount VirusCount - 1
+              ]
+           ]
+       ]   
+    ]
 end
 
 ;; double check this implementation when spawning more than 1 virus, for Virusgenotypes and totalvirusgenotypes
@@ -379,7 +354,6 @@ to create-viruses [ n ]
      set TotalVirusCount TotalVirusCount + 1
   ]
 end
-
 
 
 to incrementDict [ dict cont seq ]
@@ -472,10 +446,6 @@ to-report mutateSequence [ s ]
 end
 
 
-
-
-
-
 ;; Input: Container Number
 ;; Returns: A list of container numbers that are immediately adjacent to the cell
 to-report getAdjacentContainers [ current ]
@@ -523,9 +493,6 @@ to-report convertBinaryLength [ num len ]
   repeat diff [ set digit lput 0 digit ]
   report digit
 end
-
-
-
 
 
 ;; Input: number

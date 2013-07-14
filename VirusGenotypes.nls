@@ -9,7 +9,6 @@ globals [
                            ;; The first dictionary key is the container number
                            ;; The second dictionary holds the sequences and counts of each sequence in the respective container
    TotalVirusGenotypes 
-
 ]
 
 
@@ -37,7 +36,7 @@ to removeGenotype [ cont seq ]
     ifelse num = 1 [
         table:remove (table:get VirusGenotypes cont) seq ;; remove, count = 1
     ][
-        table:put (table:get VirusGenotypes cont) seq (num - 1) ;;decrement
+        table:put (table:get VirusGenotypes cont) seq (num - 1) ;; decrement
     ]
     let i 0
     while [ i < length TotalVirusGenotypes ] [
@@ -49,13 +48,12 @@ to removeGenotype [ cont seq ]
     ]
 end
 
-
+;; Count the number of genotypes within the given container
 to-report getGenotypeCount [ cont seq ]
     report table:get (table:get VirusGenotypes cont) seq
 end
 
-
-
+;; Get the total virus counts 
 to-report getTotalVirusGenotypeCount
      let result 0
      foreach TotalVirusGenotypes [
@@ -64,8 +62,9 @@ to-report getTotalVirusGenotypeCount
      report result
 end
 
+;; Print Genotypes, mainly for debugging 
 to printVirusGenotypes
-   foreach table:to-list virusgenotypes [ 
+   foreach table:to-list VirusGenotypes [ 
          print (word "Container Infected # " item 0 ? )
          foreach table:to-list (item 1 ?) [
            output-print (word item 0 ? " ==> " item 1 ?)
@@ -73,10 +72,7 @@ to printVirusGenotypes
    ]
 end
 
-
-
-
-
+;; Get infected count of containers
 to-report getInfectedCount
   report table:length VirusGenotypes
 end
