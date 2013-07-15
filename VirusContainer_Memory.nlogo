@@ -55,7 +55,7 @@ to setup
   set ContainerVirusCounts array:from-list n-values GridCount [0]
   set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
   
-  let i 0  
+    let i 0  
   repeat GridCount [    
       set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
@@ -66,6 +66,17 @@ to setup
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "MonoSpaced" "Bold" 13
   setup-env
+  
+  ;; Fix this repeat and one above, later
+    set i 0  
+  repeat GridCount [    
+      ;; Partition the sequences to the same size
+      let partition partitionSequence (array:item ContainerSequence i ) (length DrugSequence)
+      
+      ;; Check for a match with our drug sequence, filter if bits are equivilanet 
+      if not (empty? filter [? = DrugSequence] partition ) [ set DrugContainers lput i DrugContainers ]
+      set i i + 1
+  ]
   if DebugDraw [ drawVirusCounts ]
   reset-ticks
 end
@@ -273,9 +284,10 @@ to go
   ;; check replication
   if VirusCount = 0 [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" if DebugDraw [ drawVirusCounts ] stop ] 
   ;;this needs to go foreach
-  kill-virus
-  ;; All containers infected?
-  replicate
+;  kill-virus
+;  ;; All containers infected?
+;  replicate
+  drug
   if DebugDraw [ drawVirusCounts ]
   if getInfectedCount = GridCount [ output-print (word "\n\n\n\n--[[ All Containers Infected ]]--\n" date-and-time) stop ]
   

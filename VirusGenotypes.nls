@@ -5,7 +5,7 @@
 
 globals [
 
-   VirusGenotypes          ;; Virus genotypes, dictionary {[ ContainerNumber, {[sequence, count ], [sequence, count ]} ]}
+   VirusGenotypes          ;; Virus genotypes, dictionary {[ ContainerNumber, {[sequence, count], [sequence, count]} ]}
                            ;; The first dictionary key is the container number
                            ;; The second dictionary holds the sequences and counts of each sequence in the respective container
    TotalVirusGenotypes 
@@ -16,6 +16,83 @@ globals [
 to initVirusGenotypes
   set VirusGenotypes table:make
   set TotalVirusGenotypes [ ]
+end
+
+
+;; Requires: hammingDistance, DeathProbability, ReplicationProbability
+to fitness [ cont ]
+    let fit 25      ;; 25% change, based on genotype hamming distance 
+    let maxHD 7
+    foreach table:to-list (table:get VirusGenotypes cont) [
+        let counts item 1 ?
+        let sequence item 0 ?
+        let hamming hammingDistance sequence (array:item ContainerSequence cont)
+;        let dp 100 - fit + ( fit / maxHD * hamming) ;; Farther away from container, higher death probability
+        
+        
+        output-print (word item 0 ? " ==> " item 1 ?)
+        output-print (word "  " array:item ContainerSequence cont)
+        
+    ]
+end
+
+
+
+
+
+to drug
+    let strength 25
+    let VirusGenotypesCopy VirusGenotypes
+    foreach table:to-list VirusGenotypesCopy [
+        let containerKey item 0 ?
+        let dp DeathProbability
+        let rep ReplicationProbability
+        ;; Drug affected container
+        if not(empty? filter [ containerKey = ? ] DrugContainers) [
+            set dp DeathProbability + ( DeathProbability * strength)
+            set rep ReplicationProbability - (ReplicationProbability * strength)
+        ]
+        
+        foreach (table:to-list item 1 ?) [
+            repeat (item 1 ? ) [ ;; Repeat the number of viruses with genotype in dictionary iteration
+                ;; die
+                ifelse random-float 100.0 < dp [                  
+                     removeGenotype containerKey item 0 ? 
+                     array:set ContainerVirusCounts containerKey ((array:item ContainerVirusCounts containerKey) - 1)
+                     set VirusCount VirusCount - 1
+                ][
+                
+                    if random-float 100.0 < rep [
+                        ;; Replicate - mutate first, check adjacent containers, move to container and increment counts
+                        let mutation [ ]
+                        let mSeq mutateSequence (item 0 ?)  ;; mutate a sequence
+                        let shuffledAdjc shuffle (item containerKey AdjacentContainers)
+                        ;; Get container mutation sequences
+                        foreach shuffledAdjc [ set mutation lput array:item ContainerSequence ? mutation ]          
+                        
+                        let partition partitionSequence mSeq MutationLength ;; MutationLength = ContainerSequenceLength
+                        let placementContainer containerKey                 
+                        let i 0
+                        foreach mutation [
+                             ;; Check for a match with our drug sequence, filter if bits are equivilanet 
+                             let t ?
+                             if not (empty? filter [? = t] partition ) [ 
+                                 set MutationCount MutationCount + 1  
+                                 set placementContainer item i shuffledAdjc
+                                 stop
+                             ]
+                             set i i + 1
+                        ]
+                        
+                        array:set ContainerVirusCounts placementContainer ((array:item ContainerVirusCounts placementContainer) + 1)
+                        set VirusCount VirusCount + 1
+                        set TotalVirusCount TotalVirusCount + 1
+                        addGenotype placementContainer mSeq
+                    ]
+                ]                           
+            ]
+        ]
+    ]
 end
 
 
