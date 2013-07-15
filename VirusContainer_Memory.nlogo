@@ -39,10 +39,9 @@ patches-own [
 to setup
   clear-all
   initVirusGenotypes
-  set-histogram-num-bars 7
-  set WorldLength 8 
+  set WorldLength 8
   set VirusSequenceLength 10
-  set VirusSequence [ 0 1 ]
+  set VirusSequence (n-values VirusSequenceLength [0])
   
   set MutationLength 6
   
@@ -55,7 +54,7 @@ to setup
   set ContainerVirusCounts array:from-list n-values GridCount [0]
   set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
   
-    let i 0  
+  let i 0  
   repeat GridCount [    
       set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
@@ -79,6 +78,7 @@ to setup
   ]
   if DebugDraw [ drawVirusCounts foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]] ]
   reset-ticks
+  set-histogram-num-bars 16
 end
 
 to setup-env 
@@ -92,12 +92,12 @@ to env
     ;; Create an array for the container sequences
     set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
     ;; Randomly generate the first one
-    array:set ContainerSequence 0 (n-values MutationLength [one-of [0 1]])
+    array:set ContainerSequence 0 (n-values MutationLength [0])
     
     ;; Goes through each row, unable to call it completely recursively with current implementation
-    repeat 8 [ 
+    repeat WorldLength [ 
         setSequences i filter [ ? > i ] (getAdjacentContainers i)    
-        set i i + 8
+        set i i + WorldLength
     ]
     ;; Tries to match bits 
     fixme
@@ -280,17 +280,17 @@ end
 
 
 to go
-  ;; Check virus die
-  ;; check replication
-  if VirusCount = 0 [ output-print "\n\n\n\n--[[ No Viruses Left ]]--" if DebugDraw [ drawVirusCounts ] stop ] 
+  if VirusCount = 0 [ output-print "\n--[[ No Viruses Left ]]--" if DebugDraw [ drawVirusCounts ] stop ] 
+  if getInfectedCount = GridCount [ output-print (word "\n--[[ All Containers Infected ]]--\n" date-and-time) stop ]
+  if ticks = 40 [output-print (word "\n--[[ 40 Generations ]]--\n" date-and-time) stop ] 
   ;;this needs to go foreach
 ;  kill-virus
 ;  ;; All containers infected?
 ;  replicate
   drug
   if DebugDraw [ drawVirusCounts ]
-  if getInfectedCount = GridCount [ output-print (word "\n\n\n\n--[[ All Containers Infected ]]--\n" date-and-time) stop ]
-  
+  output-print (word date-and-time ":   Virus: " VirusCount"  Infected: " getInfectedCount)
+
   tick 
 end
 
@@ -537,9 +537,9 @@ to-report convertDecimal [ num ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-238
+263
 10
-758
+783
 551
 8
 8
@@ -606,7 +606,7 @@ MutationProbability
 MutationProbability
 0
 100
-15
+10
 1
 1
 %
@@ -628,10 +628,10 @@ DeathProbability
 HORIZONTAL
 
 OUTPUT
-6
-224
-234
-383
+792
+396
+1251
+555
 12
 
 SLIDER
@@ -650,10 +650,10 @@ ReplicationProbability
 HORIZONTAL
 
 MONITOR
-7
-396
-93
-441
+11
+288
+97
+333
 Infected Containers
 getInfectedCount
 0
@@ -661,10 +661,10 @@ getInfectedCount
 11
 
 MONITOR
-8
-449
-95
-494
+12
+341
+104
+386
 Virus Count
 VirusCount
 0
@@ -689,10 +689,10 @@ NIL
 1
 
 SWITCH
-105
-457
-233
-490
+133
+349
+251
+382
 DebugDraw
 DebugDraw
 0
@@ -700,10 +700,10 @@ DebugDraw
 -1000
 
 MONITOR
-8
-502
-98
-547
+12
+394
+102
+439
 NIL
 MutationCount
 0
@@ -711,10 +711,10 @@ MutationCount
 11
 
 MONITOR
-118
-503
-215
-548
+138
+395
+235
+440
 Mutation Rate %
 MutationCount / VirusCount * 100
 4
@@ -722,10 +722,10 @@ MutationCount / VirusCount * 100
 11
 
 MONITOR
-112
-397
-197
-442
+116
+289
+201
+334
 Death rate%
 (TotalVirusCount - VirusCount) / TotalVirusCount * 100
 4
@@ -733,10 +733,10 @@ Death rate%
 11
 
 PLOT
-789
-20
-989
-170
+811
+13
+1038
+167
 plot 1
 NIL
 NIL
@@ -751,10 +751,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "histogram TotalVirusGenotypes"
 
 BUTTON
-810
-230
-995
-263
+18
+225
+168
+258
 Draw HammingDistances
 draw-hd
 NIL
@@ -766,6 +766,24 @@ NIL
 NIL
 NIL
 1
+
+PLOT
+817
+182
+1037
+332
+plot 2
+NIL
+NIL
+0.0
+1024.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram Diversity"
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1114,6 +1132,35 @@ NetLogo 5.0.4
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="Drugless" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="35"/>
+    <metric>VirusCount</metric>
+    <metric>TotalVirusCount</metric>
+    <metric>MutationCount</metric>
+    <metric>length filter [ ? = 0 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 1 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 2 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 3 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 4 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 5 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 6 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 7 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 8 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 9 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 10 ] TotalVirusGenotypes</metric>
+    <enumeratedValueSet variable="DebugDraw">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ReplicationProbability">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="DeathProbability" first="5" step="1" last="10"/>
+    <steppedValueSet variable="MutationProbability" first="10" step="1" last="15"/>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default

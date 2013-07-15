@@ -9,6 +9,7 @@ globals [
                            ;; The first dictionary key is the container number
                            ;; The second dictionary holds the sequences and counts of each sequence in the respective container
    TotalVirusGenotypes 
+   Diversity
 ]
 
 
@@ -16,6 +17,7 @@ globals [
 to initVirusGenotypes
   set VirusGenotypes table:make
   set TotalVirusGenotypes [ ]
+  set Diversity [ ]
 end
 
 
@@ -51,10 +53,14 @@ to drug
         let dp DeathProbability
         let rep ReplicationProbability
         ;; Drug affected container
-        if not(empty? filter [ containerKey = ? ] DrugContainers) [
-            set dp DeathProbability + ( DeathProbability * strength)
-            set rep ReplicationProbability - (ReplicationProbability * strength)
-        ]
+        
+        
+;        if not(empty? filter [ containerKey = ? ] DrugContainers) [
+;            set dp DeathProbability + ( DeathProbability * strength)
+;            set rep ReplicationProbability - (ReplicationProbability * strength)
+;        ]
+
+
         foreach (table:to-list item 1 ?) [
             repeat (item 1 ? ) [ ;; Repeat the number of viruses with genotype in dictionary iteration
                 ;; die
@@ -114,7 +120,8 @@ to addGenotype [ cont seq ]
   ifelse table:has-key? (table:get VirusGenotypes cont) seq 
   [ table:put (table:get VirusGenotypes cont) seq (getGenotypeCount cont seq) + 1 ]
   [ table:put (table:get VirusGenotypes cont) seq 1 ]
-  set TotalVirusGenotypes lput seq TotalVirusGenotypes
+  set TotalVirusGenotypes lput (hammingDistance seq VirusSequence) TotalVirusGenotypes
+  set Diversity lput (convertDecimal seq) Diversity
 end
 
 to removeGenotype [ cont seq ]
@@ -126,9 +133,18 @@ to removeGenotype [ cont seq ]
     ]
     let i 0
     while [ i < length TotalVirusGenotypes ] [
-        if item i TotalVirusGenotypes = seq [
+        if item i TotalVirusGenotypes = (hammingDistance seq VirusSequence) [
             set TotalVirusGenotypes remove-item i TotalVirusGenotypes
             set i i + length TotalVirusGenotypes
+        ]
+        set i i + 1
+    ]
+    
+    set i 0
+    while [ i < length Diversity ] [
+        if item i Diversity = (convertDecimal seq) [
+            set Diversity remove-item i Diversity
+            set i i + length Diversity
         ]
         set i i + 1
     ]
@@ -139,14 +155,14 @@ to-report getGenotypeCount [ cont seq ]
     report table:get (table:get VirusGenotypes cont) seq
 end
 
-;; Get the total virus counts 
-to-report getTotalVirusGenotypeCount
-     let result 0
-     foreach TotalVirusGenotypes [
-         set result result + item 1 ?
-     ]
-     report result
-end
+;;; Get the total virus counts 
+;to-report getTotalVirusGenotypeCount
+;     let result 0
+;     foreach TotalVirusGenotypes [
+;         set result result + item 1 ?
+;     ]
+;     report result
+;end
 
 ;; Print Genotypes, mainly for debugging 
 to printVirusGenotypes
