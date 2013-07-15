@@ -77,7 +77,7 @@ to setup
       if not (empty? filter [? = DrugSequence] partition ) [ set DrugContainers lput i DrugContainers ]
       set i i + 1
   ]
-  if DebugDraw [ drawVirusCounts ]
+  if DebugDraw [ drawVirusCounts foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]] ]
   reset-ticks
 end
 
@@ -432,7 +432,7 @@ to setup-patches
      set x (- WorldLength)
   ]
   
-  ;foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]]
+  foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]]
 end
 
 
@@ -535,7 +535,6 @@ to-report convertDecimal [ num ]
   ]
   report total
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 238
@@ -750,6 +749,23 @@ false
 "" ""
 PENS
 "default" 1.0 1 -16777216 true "" "histogram TotalVirusGenotypes"
+
+BUTTON
+810
+230
+995
+263
+Draw HammingDistances
+draw-hd
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?

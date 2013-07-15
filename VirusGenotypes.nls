@@ -40,10 +40,13 @@ end
 
 
 
+
+
+;; Backup
 to drug
-    let strength 25
-    let VirusGenotypesCopy VirusGenotypes
-    foreach table:to-list VirusGenotypesCopy [
+    let strength 0.25
+    let temp table:make
+    foreach table:to-list VirusGenotypes [
         let containerKey item 0 ?
         let dp DeathProbability
         let rep ReplicationProbability
@@ -52,7 +55,6 @@ to drug
             set dp DeathProbability + ( DeathProbability * strength)
             set rep ReplicationProbability - (ReplicationProbability * strength)
         ]
-        
         foreach (table:to-list item 1 ?) [
             repeat (item 1 ? ) [ ;; Repeat the number of viruses with genotype in dictionary iteration
                 ;; die
@@ -73,26 +75,33 @@ to drug
                         let partition partitionSequence mSeq MutationLength ;; MutationLength = ContainerSequenceLength
                         let placementContainer containerKey                 
                         let i 0
-                        foreach mutation [
+                        while[ i < length mutation ] [
                              ;; Check for a match with our drug sequence, filter if bits are equivilanet 
-                             let t ?
-                             if not (empty? filter [? = t] partition ) [ 
+                             if not (empty? filter [? = (item i mutation)] partition ) [ 
                                  set MutationCount MutationCount + 1  
                                  set placementContainer item i shuffledAdjc
-                                 stop
                              ]
                              set i i + 1
                         ]
-                        
                         array:set ContainerVirusCounts placementContainer ((array:item ContainerVirusCounts placementContainer) + 1)
                         set VirusCount VirusCount + 1
                         set TotalVirusCount TotalVirusCount + 1
-                        addGenotype placementContainer mSeq
+                        incrementDict temp placementContainer mSeq
                     ]
                 ]                           
             ]
         ]
     ]
+    
+   ;; merge temp dict and regular
+   foreach table:to-list temp [
+       let localContainerNumber item 0 ?
+       foreach table:to-list (item 1 ?) [
+           repeat item 1 ? [
+               addGenotype localContainerNumber item 0 ? 
+           ]
+       ]
+   ]
 end
 
 
