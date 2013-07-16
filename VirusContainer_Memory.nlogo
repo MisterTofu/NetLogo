@@ -39,7 +39,7 @@ patches-own [
 to setup
   clear-all
   initVirusGenotypes
-  set WorldLength 8
+  set WorldLength 7
   set VirusSequenceLength 10
   set VirusSequence (n-values VirusSequenceLength [0])
   
@@ -76,7 +76,7 @@ to setup
       if not (empty? filter [? = DrugSequence] partition ) [ set DrugContainers lput i DrugContainers ]
       set i i + 1
   ]
-  if DebugDraw [ drawVirusCounts foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]] ]
+  if DebugDraw [ drawVirusCounts ] ;foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]] ]
   reset-ticks
   set-histogram-num-bars 16
 end
@@ -537,12 +537,12 @@ to-report convertDecimal [ num ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-263
+225
 10
-783
-551
-8
-8
+685
+491
+7
+7
 30.0
 1
 10
@@ -553,10 +553,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--8
-8
--8
-8
+-7
+7
+-7
+7
 0
 0
 1
@@ -564,10 +564,10 @@ ticks
 30.0
 
 BUTTON
-8
-11
-74
-44
+25
+10
+91
+43
 Setup
 setup\n\n
 NIL
@@ -581,9 +581,9 @@ NIL
 1
 
 BUTTON
-95
+120
 10
-158
+183
 43
 Go
 go
@@ -598,10 +598,10 @@ NIL
 1
 
 SLIDER
-11
-129
-196
-162
+5
+135
+205
+168
 MutationProbability
 MutationProbability
 0
@@ -613,10 +613,10 @@ MutationProbability
 HORIZONTAL
 
 SLIDER
-8
-90
-187
-123
+5
+95
+205
+128
 DeathProbability
 DeathProbability
 0
@@ -635,10 +635,10 @@ OUTPUT
 12
 
 SLIDER
-6
-48
-204
-81
+5
+55
+205
+88
 ReplicationProbability
 ReplicationProbability
 1
@@ -650,10 +650,10 @@ ReplicationProbability
 HORIZONTAL
 
 MONITOR
-11
-288
-97
-333
+5
+305
+120
+350
 Infected Containers
 getInfectedCount
 0
@@ -661,10 +661,10 @@ getInfectedCount
 11
 
 MONITOR
-12
-341
-104
-386
+5
+185
+97
+230
 Virus Count
 VirusCount
 0
@@ -672,10 +672,10 @@ VirusCount
 11
 
 BUTTON
-120
-181
-190
-214
+1165
+260
+1235
+293
 Go * 5
 repeat 5 [ go ]
 NIL
@@ -689,10 +689,10 @@ NIL
 1
 
 SWITCH
-133
-349
-251
-382
+1100
+190
+1218
+223
 DebugDraw
 DebugDraw
 0
@@ -700,10 +700,10 @@ DebugDraw
 -1000
 
 MONITOR
-12
-394
-102
-439
+110
+185
+205
+230
 NIL
 MutationCount
 0
@@ -711,10 +711,10 @@ MutationCount
 11
 
 MONITOR
-138
-395
-235
-440
+110
+245
+205
+290
 Mutation Rate %
 MutationCount / VirusCount * 100
 4
@@ -722,10 +722,10 @@ MutationCount / VirusCount * 100
 11
 
 MONITOR
-116
-289
-201
-334
+5
+245
+95
+290
 Death rate%
 (TotalVirusCount - VirusCount) / TotalVirusCount * 100
 4
@@ -737,9 +737,9 @@ PLOT
 13
 1038
 167
-plot 1
-NIL
-NIL
+Diversity HD
+Hamming Distance
+Virus Population
 0.0
 10.0
 0.0
@@ -751,10 +751,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "histogram TotalVirusGenotypes"
 
 BUTTON
-18
-225
-168
-258
+1063
+304
+1213
+337
 Draw HammingDistances
 draw-hd
 NIL
@@ -768,11 +768,11 @@ NIL
 1
 
 PLOT
-817
-182
-1037
-332
-plot 2
+770
+190
+1035
+350
+Diversity Genotype
 NIL
 NIL
 0.0
@@ -1160,6 +1160,33 @@ NetLogo 5.0.4
     <steppedValueSet variable="DeathProbability" first="5" step="1" last="10"/>
     <steppedValueSet variable="MutationProbability" first="10" step="1" last="15"/>
   </experiment>
+  <experiment name="aws" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="35"/>
+    <metric>VirusCount</metric>
+    <metric>TotalVirusCount</metric>
+    <metric>MutationCount</metric>
+    <metric>length filter [ ? = 0 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 1 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 2 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 3 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 4 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 5 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 6 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 7 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 8 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 9 ] TotalVirusGenotypes</metric>
+    <metric>length filter [ ? = 10 ] TotalVirusGenotypes</metric>
+    <enumeratedValueSet variable="DebugDraw">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ReplicationProbability">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="DeathProbability" first="5" step="1" last="7"/>
+    <steppedValueSet variable="MutationProbability" first="10" step="1" last="12"/>
+  </experiment>
 </experiments>
 @#$#@#$#@
 @#$#@#$#@
@@ -1175,5 +1202,5 @@ Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
 
 @#$#@#$#@
-0
+1
 @#$#@#$#@
