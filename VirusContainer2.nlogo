@@ -19,10 +19,10 @@ globals [
    MutationSequenceLength
    VirusSequence          ;; Sequence of the original virus
    VirusSequenceLength 
-
-   VirusCount             ;; Keeps track of number of alive viruses
-   TotalVirusCount        ;; Keeps track of the total number of viruses
-   ContainerVirusCounts   ;; Keeps track of the number of alive viruses in respective containers
+   VirusCounts             ;; Keeps track of number of alive viruses
+   TotalVirusCounts        ;; Keeps track of the total number of viruses
+   
+   StartTime
 ]
 
 ;; For debugging purposes
@@ -40,13 +40,13 @@ to setup
   set VirusSequenceLength 10
   set MutationSequenceLength 10
   set VirusSequence (n-values VirusSequenceLength [0])
-
+  
   set DrugSequence [ 0 0 0 0 ]
   set DrugContainers [ ]
   initContainers
   initVirusGenotypes
   
-  
+
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world 
   let i 0  
   repeat GridCount [    
@@ -65,31 +65,45 @@ to setup
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "MonoSpaced" "Bold" 13
 ;  setup-env
-  
+    set StartTime date-and-time
   if DebugDraw [ drawVirusCounts ] ;foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]] ]
   reset-ticks
 end
 
 ;
 to go
-  if VirusCount = 0 [ output-print "\n--[[ No Viruses Left ]]--" if DebugDraw [ drawVirusCounts ] stop ] 
-
+  let start date-and-time 
+  if VirusCounts = 0 [ output-print "\n--[[ No Viruses Left ]]--" if DebugDraw [ drawVirusCounts ] stop ] 
+  if isInfected? 0 [ output-print "\n--[[ Infected Goal Container 0 ]]--" if DebugDraw [ drawVirusCounts ] stop ]
   drug
   if DebugDraw [ drawVirusCounts ]
-  output-print (word date-and-time ":   Virus: " VirusCount"  Infected: " getInfectedCount)
-
+  
+  output-print (word "TotalTime: " runTime StartTime "   Tick: " runTime start "      Virus: " VirusCounts "  Infected: " getInfectedCount)
   tick 
 end
+
+
+;; This does not handle: t < time, eg an hour passes
+to-report runTime [ time ]
+  let t date-and-time
+  let m properTime (read-from-string substring t 3 5)  (read-from-string substring time 3 5)
+  let s properTime (read-from-string substring t 6 8)  (read-from-string substring time 6 8)
+  let ms properTime (read-from-string substring t 9 12) (read-from-string substring time 9 12) 
+  report (word m ":" s ":" ms)
+end
+
+to-report properTime [ value1 value2 ]
+  report ifelse-value (( value1 - value2) > 0) [ (word (value1 - value2)) ] [(word (value2 - value1))]
+end
+
 
 ;; double check this implementation when spawning more than 1 virus, for Virusgenotypes and totalvirusgenotypes
 to create-viruses 
      let sequence n-values VirusSequenceLength [one-of VirusSequence]      ;; Create a random virus seq
      let c 63
      addGenotype c  sequence                          
-     array:set ContainerVirusCounts c ((array:item ContainerVirusCounts c) + 1)
-     print array:item ContainerVirusCounts c
-     set VirusCount VirusCount + 1
-     set TotalVirusCount TotalVirusCount + 1
+     set VirusCounts VirusCounts + 1
+     set TotalVirusCounts TotalVirusCounts + 1
 end
 
 
@@ -114,7 +128,7 @@ to drawVirusCounts
       ask patches with [container = i] [ set xy (list pxcor pycor) ]
 ;      graphics:set-text-color DrawSequenceColor
 ;      graphics:draw-text item 0 xy (item 1 xy + 0.7) "C"  reduce word (array:item ContainerSequences i) 
-      let c array:item ContainerVirusCounts i
+      let c item i VirusContainerCounts 
       ifelse c > 0 [ 
           graphics:set-text-color rgb 200 3 3
       ][ graphics:set-text-color DrawVirusCountColor ]
@@ -214,10 +228,6 @@ to-report hammingDistance [sequence1 sequence2]
       report (length remove true (map [?1 = ?2] sequence1 sequence2))
   ]
   report false
-end
-
-to-report isGoalContainerInfected [ cont ]
-  report array:item ContainerVirusCounts cont > 0
 end
 
 
@@ -336,7 +346,7 @@ MutationProbability
 MutationProbability
 0
 100
-20
+10
 1
 1
 %
@@ -351,7 +361,7 @@ DeathProbability
 DeathProbability
 0
 100
-0
+10
 1
 1
 %
@@ -373,7 +383,7 @@ ReplicationProbability
 ReplicationProbability
 1
 100
-53
+50
 1
 1
 %
@@ -396,17 +406,17 @@ MONITOR
 97
 270
 Virus Count
-VirusCount
+VirusCounts
 0
 1
 11
 
 BUTTON
-30
+5
 465
-100
+72
 498
-Go * 5
+5 Step
 repeat 5 [ go ]
 NIL
 1
@@ -446,8 +456,8 @@ MONITOR
 205
 330
 Mutation Rate %
-MutationCount / VirusCount * 100
-4
+MutationCount / VirusCounts * 100
+8
 1
 11
 
@@ -457,16 +467,16 @@ MONITOR
 95
 330
 Death rate%
-(TotalVirusCount - VirusCount) / TotalVirusCount * 100
+(TotalVirusCounts - VirusCounts) / TotalVirusCounts * 100
 4
 1
 11
 
 PLOT
-811
-13
-1038
-167
+1243
+244
+1403
+364
 Diversity HD
 Hamming Distance
 Virus Population
@@ -482,9 +492,9 @@ PENS
 
 PLOT
 805
-185
+235
 1115
-345
+395
 Diversity Genotype
 NIL
 NIL
@@ -507,11 +517,62 @@ MovementProbability
 MovementProbability
 0
 100
-45
+10
 1
 1
 %
 HORIZONTAL
+
+BUTTON
+145
+465
+208
+498
+Step
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+75
+465
+142
+498
+2 Step
+go go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+809
+58
+921
+91
+HammingDist
+draw-hd
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -914,6 +975,26 @@ NetLogo 5.0.4
     </enumeratedValueSet>
     <steppedValueSet variable="DeathProbability" first="5" step="1" last="7"/>
     <steppedValueSet variable="MutationProbability" first="10" step="1" last="12"/>
+  </experiment>
+  <experiment name="experiment1" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>VirusCounts</metric>
+    <enumeratedValueSet variable="DebugDraw">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ReplicationProbability">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DeathProbability">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MovementProbability">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MutationProbability">
+      <value value="10"/>
+    </enumeratedValueSet>
   </experiment>
 </experiments>
 @#$#@#$#@

@@ -10,7 +10,6 @@ globals [
                            ;; The second dictionary holds the sequences and counts of each sequence in the respective container
    TotalVirusGenotypes 
    Diversity
-   TempDict
    VirusContainerCounts
     
 ]
@@ -55,9 +54,11 @@ end
 
 to drug
     let strength 0.25
-    set tempDict table:make
+    let newViruses [ ]
     foreach table:to-list VirusGenotypes [
-        let containerKey item 0 ?
+        ;; item 0 = Container Key
+        ;; item 1 = Dictionary 
+        let containerKey item 0 ? 
         let dp DeathProbability
         let rep ReplicationProbability
         ;; Drug affected container
@@ -70,23 +71,22 @@ to drug
 
 
         foreach (table:to-list item 1 ?) [
+            ;; item 0 = sequence
+            ;; item 1 = count
 
-            
-            let hd hammingDistance (item 0 ?) (array:item ContainerSequences item 1 ?)
-;            set dp dp + (hd / 50 * DeathProbability)
-;            set rep rep - (hd / 50 * ReplicationProbability)
-            print(word "Death: " dp " Replication: " rep "   Hamming: " hd)
+            let hd hammingDistance (item 0 ?) (array:item ContainerSequences containerKey)
+            set dp dp + (hd / 50 * DeathProbability)
+            set rep rep - (hd / 50 * ReplicationProbability)
+;            print(word "Death: " dp " Replication: " rep "   Hamming: " hd)
             
             ;; calculate how many would die/replicate
-                                 ;; migrate to a cell
 
             
             repeat (item 1 ? ) [ ;; Repeat the number of viruses with genotype in dictionary iteration
                 ;; die
                 ifelse random-float 100.0 < dp [                  
                      removeGenotype containerKey item 0 ? 
-                     array:set ContainerVirusCounts containerKey ((array:item ContainerVirusCounts containerKey) - 1)
-                     set VirusCount VirusCount - 1
+                     set VirusCounts VirusCounts - 1
                 ][
                     ifelse random-float 100.0 < rep [
                         ;; Replicate - mutate first, check adjacent containers, move to container and increment counts
@@ -106,16 +106,17 @@ to drug
                              ]
                              set i i + 1
                         ]
-                        array:set ContainerVirusCounts placementContainer ((array:item ContainerVirusCounts placementContainer) + 1)
-                        set VirusCount VirusCount + 1
-                        set TotalVirusCount TotalVirusCount + 1
-                        incrementDict tempDict placementContainer mSeq
+                        set newViruses lput (list placementContainer mSeq) newViruses
+                        set VirusCounts VirusCounts + 1
+                        set TotalVirusCounts TotalVirusCounts + 1
+
                     ][
+                      if random-float 100.0 < MovementProbability [
                          let placementContainer one-of (shuffle (item containerKey AdjacentContainers))    
                          addGenotype placementContainer item 0 ?
                          removeGenotype containerKey item 0 ?
-;                         array:set ContainerVirusCounts placementContainer ((array:item ContainerVirusCounts placementContainer) + 1)
-;                         array:set ContainerVirusCounts containerKey ((array:item ContainerVirusCounts containerKey) - 1)                    
+
+                      ]
                     ]
                 ]                           
             ]
@@ -125,13 +126,9 @@ to drug
     
     
    ;; merge temp dict and regular
-   foreach table:to-list tempDict [
-       let localContainerNumber item 0 ?
-       foreach table:to-list (item 1 ?) [
-           repeat item 1 ? [
-               addGenotype localContainerNumber item 0 ? 
-           ]
-       ]
+   foreach newViruses print
+   foreach newViruses [
+        addGenotype item 0 ? item 1 ? 
    ]
 end
 
@@ -205,8 +202,16 @@ to printVirusGenotypes
    ]
 end
 
+to-report allInfected?
+  report empty? filter [ ? = 0 ] VirusContainerCounts
+end
+
+to-report isInfected? [ cont ]
+  report item cont VirusContainerCounts > 0
+end
+
 
 ;; Get infected count of containers
 to-report getInfectedCount
-  report table:length VirusGenotypes
+  report length filter [ ? > 0 ] VirusContainerCounts 
 end
