@@ -114,32 +114,57 @@ end
 ;; set container sequences
 to setSequences [ node ]
     ;; Get a list of adjacent containers, that is greater than it
-    let nodeList filter [ ? > node ] (getAdjacentContainers node)
+    
+    let nodeList filter [ ? > node ] item node AdjacentContainers
     ;; Flip two bits on each one, based n = 2 
     foreach (nodeList) [ flipBits node ? ]
     
-    ;; check adjacent containers and check if they have a common container
-    let common [ ]      
-    foreach (getAdjacentContainers item 0 nodeList) [
-        let temp ?
-        if length nodeList > 1 [
-           foreach (getAdjacentContainers item 1 nodeList) [
-               if temp = ? [ ;; common node
-                   set common ? ;; should only be one item I think
-               ]
-           ]
+    ;; check the first two adjacent containers for common container
+    let common [ ]
+    let temp [ ]      
+    foreach nodeList [ 
+       set temp sentence temp filter [ ? > node ] item ? AdjacentContainers 
+    ]
+    let i 0
+    set temp sort temp    
+    while [ i + 1 < length temp ] [
+        if item i temp = item (i + 1) temp [
+            set common lput item i temp common
         ]
-     ]
+    ]
+
+    print common 
+;    set temp sort temp 
+;;    foreach (remove-duplicates temp) [
+;;      set temp remove ? temp
+;;    ]
+;    print remove-duplicates temp
+;    foreach filter [ ? > node ] (item (item 0 nodeList) AdjacentContainers) [
+;        if length nodeList > 1 [
+;           set temp ?
+;           foreach filter [ ? > node ] (item (item 1 nodeList) AdjacentContainers) [
+;               if temp = ? [ ;; common node
+;                   set common ? ;; should only be one item I think
+;               ]
+;           ]
+;        ]
+;     ]
+     
     if (is-number? common) [
         ;; set common node, based on the two adjacent nodes
         ;; with two bit switches from a common parent, shuffle the third one till it is the right hamming distance
-        let temp shuffle (array:item ContainerSequences (item random 1 nodeList))
+        
+        set temp shuffle (array:item ContainerSequences (item random 1 nodeList)) ;; Get one of the two nodes that have just been assigned
+        
         while [ (hammingdistance temp array:item ContainerSequences (item 0 nodeList)) > 2 and (hammingdistance temp array:item ContainerSequences (item 1 nodeList)) > 2 ] [
+            ;; Keep shuffling one of the two container sequences, until hamming distances match 
             set temp shuffle (array:item ContainerSequences (item random 1 nodeList))
         ]
+        ;; Assign it
         array:set ContainerSequences common temp
         ;; do the next container
-        setSequences filter [ ? > (item 0 nodeList) ] (getAdjacentContainers item 0 nodeList)
+;        print filter [ ? > (item 0 nodeList) ] (getAdjacentContainers item 0 nodeList)
+        setSequences node + 1;filter [ ? > (item 0 nodeList) ] (getAdjacentContainers item 0 nodeList)
     ]
 end
 
