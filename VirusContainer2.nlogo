@@ -18,8 +18,9 @@ globals [
    VirusSequenceLength 
    VirusCounts             ;; Keeps track of number of alive viruses
    TotalVirusCounts        ;; Keeps track of the total number of viruses
-   
+   TickTime
    StartTime
+   
 ]
 
 ;; For debugging purposes
@@ -59,20 +60,24 @@ to setup
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "MonoSpaced" "Bold" 13
 ;  setup-env
-  set StartTime date-and-time
+
   if DebugDraw [ drawVirusCounts ] ;foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]] ]
   reset-ticks
+    set StartTime parseTime date-and-time
 end
 
 ;
 to go
-  let start date-and-time 
   if VirusCounts = 0 [ output-print "\n--[[ No Viruses Left ]]--" if DebugDraw [ drawVirusCounts ] stop ] 
   if isInfected? 0 [ output-print "\n--[[ Infected Goal Container 0 ]]--" if DebugDraw [ drawVirusCounts ] stop ]
+  set TickTime parseTime date-and-time 
+  print TickTime 
   drug
+  
   if DebugDraw [ drawVirusCounts ]
   
-  output-print (word  date-and-time "  Tick: " runTime start "     Virus: " VirusCounts "    Infected: " getInfectedCount)
+  output-print (word "  " ticks "-Elapsed: "  runTime StartTime "s      Tick: " runTime TickTime 
+                     "s\n             Virus: " VirusCounts "      Infected: " getInfectedCount "\n")
   tick 
 end
 
@@ -84,17 +89,51 @@ to addDrugContainers
   ]
 end
 
-;; This does not handle: t < time, eg an hour passes
-to-report runTime [ time ]
-  let t date-and-time
-  let m properTime (read-from-string substring t 3 5)  (read-from-string substring time 3 5)
-  let s properTime (read-from-string substring t 6 8)  (read-from-string substring time 6 8)
-  let ms properTime (read-from-string substring t 9 12) (read-from-string substring time 9 12) 
-  report (word m ":" s ":" ms)
+to removeDrugContainers
+  if mouse-down?
+  [ 
+      ask patch mouse-xcor mouse-ycor [ if not (container = -1) and not (empty? filter [ ? = container ] DrugContainers)  [ set DrugContainers remove container DrugContainers set pcolor black   ] ]     
+  ]
 end
 
-to-report properTime [ value1 value2 ]
-  report ifelse-value (( value1 - value2) > 0) [ (word (value1 - value2)) ] [(word (value2 - value1))]
+to-report parseTime [ time ]
+  let i 0
+  let result [ ]
+  repeat 4 [
+      ifelse i = 9 [ 
+          set result lput read-from-string (substring time i (i + 3)) result  
+      ][
+          set result lput read-from-string (substring time i (i + 2)) result
+      ]
+      set i i + 3
+  ]
+  report result
+end
+
+
+;; This does not handle: t < time, eg an hour passes
+to-report runTime [ time ]
+  let t parseTime date-and-time
+  let result [ ]
+  let i 1
+  repeat 3 [
+      print item i time
+      print item i t
+      set result lput format (maxv (item i time) (item i t)) result
+      set i i + 1
+  ]
+  report (word item 0 result ":" item 1 result "." item 2 result )
+end
+
+to-report format [ t ]
+  if t > 9 [
+    report t
+  ]
+  report (word "0" t)
+end
+
+to-report maxv [ value1 value2 ]
+  report ifelse-value (( value1 - value2) > 0) [ (value1 - value2) ] [(value2 - value1)]
 end
 
 
@@ -362,7 +401,7 @@ DeathProbability
 DeathProbability
 0
 100
-15
+10
 1
 1
 %
@@ -478,7 +517,7 @@ MovementProbability
 MovementProbability
 0
 100
-50
+15
 1
 1
 %
@@ -561,7 +600,7 @@ DrugStrength
 DrugStrength
 0
 100
-95
+25
 1
 1
 + % 
@@ -602,13 +641,13 @@ PLOT
 275
 1235
 395
-plot 1
+Container Infected
 NIL
-NIL
+Grids
 0.0
 10.0
 0.0
-10.0
+64.0
 true
 false
 "" ""
@@ -622,6 +661,23 @@ BUTTON
 93
 AddDrugContainers
 addDrugContainers
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+1070
+60
+1247
+93
+NIL
+removeDrugContainers
 T
 1
 T
