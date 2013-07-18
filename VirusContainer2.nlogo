@@ -50,10 +50,7 @@ to setup
   resize-world (- WorldLength) WorldLength (- WorldLength) WorldLength   ;; resize-world 
   let i 0  
   repeat GridCount [    
-      ;; Partition the sequences to the same size
-      array:set ContainerSequences i (n-values MutationSequenceLength [one-of [0 1]])
       let partition partitionSequence (array:item ContainerSequences i ) (length DrugSequence)
-      
       ;; Check for a match with our drug sequence, filter if bits are equivilanet 
       if not (empty? filter [? = DrugSequence] partition ) [ set DrugContainers lput i DrugContainers ]
       set i i + 1
@@ -368,10 +365,10 @@ DeathProbability
 HORIZONTAL
 
 OUTPUT
-792
-396
-1251
-555
+775
+105
+1234
+264
 12
 
 SLIDER
@@ -473,10 +470,10 @@ Death rate%
 11
 
 PLOT
-1243
-244
-1403
-364
+1140
+400
+1300
+520
 Diversity HD
 Hamming Distance
 Virus Population
@@ -491,10 +488,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "histogram TotalVirusGenotypes"
 
 PLOT
-805
-235
-1115
-395
+815
+375
+1125
+535
 Diversity Genotype
 NIL
 NIL
@@ -558,12 +555,29 @@ NIL
 1
 
 BUTTON
-809
-58
-921
-91
+775
+10
+887
+43
 HammingDist
 draw-hd
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+776
+57
+908
+90
+SetupContainers
+setup-containers
 NIL
 1
 T

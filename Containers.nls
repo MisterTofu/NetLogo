@@ -10,15 +10,13 @@ globals [
 
 to initContainers
   set n-distance 2
-  set AdjacentContainers [ ]  
-  set ContainerSequences array:from-list n-values GridCount [n-values MutationSequenceLength [-1]]
-  
+  set AdjacentContainers [ ]    
   let i 0  
   repeat GridCount [    
       set AdjacentContainers lput getAdjacentContainers i AdjacentContainers
       set i i + 1
   ]
-    
+   setup-containers
 end
 
 to printSequences [c1 c2]
@@ -28,144 +26,55 @@ to printSequences [c1 c2]
     
 end
 
-;to setup-env 
-;   while [not (withinN)] [    
-;      env
-;   ]
-;end
-;
-;
-;
-;
-;to env
-;    let i 0
-;    ;; Create an array for the container sequences
-;    set ContainerSequence array:from-list n-values GridCount [n-values MutationLength [-1]]
-;    ;; Randomly generate the first one
-;    array:set ContainerSequence 0 (n-values MutationLength [0])
-;    
-;    ;; Goes through each row, unable to call it completely recursively with current implementation
-;    repeat WorldLength [ 
-;        setSequences i filter [ ? > i ] (getAdjacentContainers i)    
-;        set i i + WorldLength
-;    ]
-;    ;; Tries to match bits 
-;    fixme
-;end
-;
-;to fixme
-;      let i 0
-;      repeat GridCount [
-;             foreach (item i AdjacentContainers) [
-;                   if not (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? = 2) [
-;                       fix i
-;                    ]
-;             ]
-;             set i i + 1
-;       ]
-;end
-;
-;;; Checks if the entire grid is within a hamming distance of 1 or 2 of each adjacent cell
-;to-report withinN
-;   let i 0
-;   repeat GridCount [
-;          foreach (item i AdjacentContainers) [
-;                if (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? = 0 or hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > 2) [
-;                    report false
-;                 ]
-;          ]
-;          set i i + 1
-;    ]
-;    report true
-;end
-;
-;;; Try to match the bits from container x 
-;to fix [ i ]
-;repeat GridCount [
-;       foreach (item i AdjacentContainers) [
-;           let hd hammingDistance array:item ContainerSequence i array:item ContainerSequence ? 
-;           if not (hd = 2) [
-;               ifelse (hd = 0) [ ;; Hamming distance = 0, just shuffle the bits
-;                    array:set ContainerSequence i shuffle (array:item ContainerSequence i)
-;               ][            
-;                   ;; Get list of matches between the two sequence
-;                   let diff (map [?1 = ?2] array:item ContainerSequence i array:item ContainerSequence ?)
-;                   let temp array:item ContainerSequence i
-;
-;                   let x 0
-;                   ;; Get the amount of positions in sequence, shuffle them
-;                   foreach shuffle (n-of (MutationLength - 1) (n-values MutationLength [?])) [
-;                     ;; flip only two bits
-;                     ifelse x <= 2 [ 
-;                          if item ? diff = false [ ;; check if we have a disagreement, then flip the bit
-;                              set temp replace-item ? temp ifelse-value (item ? temp = 1) [ 0 ] [ 1 ]
-;                              set x x + 1
-;                          ]
-;                       ][
-;                           array:set ContainerSequence i temp
-;                       ]
-;                   ]
-;               ]
-;            ]
-;       ]
-;    ]
-;end
+to setup-containers 
+    set ContainerSequences array:from-list n-values GridCount [n-values MutationSequenceLength [-1]]
+    ;; Randomly generate the first one
+    array:set ContainerSequences 0 (n-values MutationSequenceLength [one-of [0 1]])
+    setSequences 0
+end
 
-;; set container sequences
+
+;; Note first sequence must be set
 to setSequences [ node ]
-    ;; Get a list of adjacent containers, that is greater than it
+    ;; get the adjacent containers sequences
+    let constraints (filter [ ? < node ] item node AdjacentContainers)
+    let temp [ ]
     
-    let nodeList filter [ ? > node ] item node AdjacentContainers
-    ;; Flip two bits on each one, based n = 2 
-    foreach (nodeList) [ flipBits node ? ]
-    
-    ;; check the first two adjacent containers for common container
-    let common [ ]
-    let temp [ ]      
-    foreach nodeList [ 
-       set temp sentence temp filter [ ? > node ] item ? AdjacentContainers 
-    ]
-    let i 0
-    set temp sort temp    
-    while [ i + 1 < length temp ] [
-        if item i temp = item (i + 1) temp [
-            set common lput item i temp common
-        ]
-    ]
+    ifelse empty? constraints [ ;; None, this must be the at 0, flip the bits of 0 and assign it to c# 1
+        flipBits node node + 1
+    ][
+        ifelse length constraints = 1 [ ;; Some containers only have 1 previously set container
+              set temp shuffle (array:item ContainerSequences (item 0 constraints)) 
+              while [ not (hammingdistance temp array:item ContainerSequences item 0 constraints = n-distance) ] [
+                  ;; Keep shuffling container sequences, until hamming distances is n-dstance
+                  set temp shuffle (array:item ContainerSequences (item 0 constraints))
+              ]
+        ][
+            ;; two constraints and check if hamming distance is too far
+             ifelse(hammingDistance array:item ContainerSequences (item 0 constraints) array:item ContainerSequences (item 1 constraints) <= (n-distance * 3)) [
+                  set temp shuffle (array:item ContainerSequences (item random 1 constraints)) ;; Get one of the two nodes that have just been assigned
+                  while [ not (hammingDistance temp array:item ContainerSequences item 0 constraints = n-distance) or not (hammingDistance temp array:item ContainerSequences item 1 constraints = n-distance)][
+                       ;; Keep shuffling one of the two container sequences, until hamming distances match 
+                       set temp shuffle (array:item ContainerSequences (item random 1 constraints))
 
-    print common 
-;    set temp sort temp 
-;;    foreach (remove-duplicates temp) [
-;;      set temp remove ? temp
-;;    ]
-;    print remove-duplicates temp
-;    foreach filter [ ? > node ] (item (item 0 nodeList) AdjacentContainers) [
-;        if length nodeList > 1 [
-;           set temp ?
-;           foreach filter [ ? > node ] (item (item 1 nodeList) AdjacentContainers) [
-;               if temp = ? [ ;; common node
-;                   set common ? ;; should only be one item I think
-;               ]
-;           ]
-;        ]
-;     ]
-     
-    if (is-number? common) [
-        ;; set common node, based on the two adjacent nodes
-        ;; with two bit switches from a common parent, shuffle the third one till it is the right hamming distance
-        
-        set temp shuffle (array:item ContainerSequences (item random 1 nodeList)) ;; Get one of the two nodes that have just been assigned
-        
-        while [ (hammingdistance temp array:item ContainerSequences (item 0 nodeList)) > 2 and (hammingdistance temp array:item ContainerSequences (item 1 nodeList)) > 2 ] [
-            ;; Keep shuffling one of the two container sequences, until hamming distances match 
-            set temp shuffle (array:item ContainerSequences (item random 1 nodeList))
+                   ]
+             ][
+                 output-print "Hamming Distance too far, Possible to restart? stopping"
+                 stop
+             ]
         ]
-        ;; Assign it
-        array:set ContainerSequences common temp
-        ;; do the next container
-;        print filter [ ? > (item 0 nodeList) ] (getAdjacentContainers item 0 nodeList)
-        setSequences node + 1;filter [ ? > (item 0 nodeList) ] (getAdjacentContainers item 0 nodeList)
+        array:set ContainerSequences node temp
     ]
+;    ask patches with [container = node] [ set pcolor red ]
+    ;; recursively call it
+    if node + 1 < GridCount [
+        setSequences node + 1
+    ]
+end
+
+to shuffleBits [ c ]
+  array:set ContainerSequences c shuffle (array:item ContainerSequences c)
+  draw-hd
 end
 
 ;; Flips two bits in container sequence,
@@ -183,39 +92,8 @@ to flipBits [ main secondary ]
    array:set ContainerSequences secondary temp
    ]
 end
-;
-;
-;to check
-;   let i 0
-;   let results [ ]
-;   repeat GridCount [
-;          foreach (item i AdjacentContainers) [
-;              if  (hammingDistance array:item ContainerSequence i array:item ContainerSequence ? > 2) [
-;                set results lput (list i ? hammingDistance array:item ContainerSequence i array:item ContainerSequence ?) results
-;
-;              ]
-;          ]
-;          set i i + 1
-;    ]
-;
-;    let out results
-;    foreach results [
-;        let j item 0 ?
-;        let k item 1 ?
-;        foreach results [
-;            set i 0
-;            if (j = item 1 ? and k = item 0 ?) [
-;                set results remove-item i results                
-;            ]
-;            set i i + 1
-;        ]
-;    ]
-;    
-;    foreach out [ print (word "Container " item 0 ? " - " item 1 ? "  ==>  " item 2 ?) ]
-;    print "\n\n"
-;    foreach results [print (word "Container " item 0 ? " - " item 1 ? "  ==>  " item 2 ?) ]
-;end
-;
+
+
 to draw-hd
   let i 0
   let DrawSequenceColor rgb 255 255 255
