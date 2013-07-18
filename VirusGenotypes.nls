@@ -15,7 +15,6 @@ globals [
 ]
 
 
-
 to initVirusGenotypes
   set VirusGenotypes table:make
   set TotalVirusGenotypes [ ]
@@ -24,51 +23,22 @@ to initVirusGenotypes
 end
 
 
-;; Requires: hammingDistance, DeathProbability, ReplicationProbability
-to fitness [ cont ]
-    let fit 25      ;; 25% change, based on genotype hamming distance 
-    let maxHD 7
-    let seqList [ ]
-    let vSeq [1 0 1 0 0 0 0 0 0 0]
-    foreach (item cont AdjacentContainers) [
-        set seqList lput (array:item ContainerSequences ? ) seqList
-    ]
-;    partitionSequence (array:item ContainerSequence cont) MutationLength
-    foreach table:to-list (table:get VirusGenotypes cont) [
-        let counts item 1 ?
-        let sequence item 0 ?
-        let hamming hammingDistance sequence (array:item ContainerSequences cont)
-;        let dp 100 - fit + ( fit / maxHD * hamming) ;; Farther away from container, higher death probability
-        
-        
-        output-print (word item 0 ? " ==> " item 1 ?)
-        output-print (word "  " array:item ContainerSequences cont)
-    ]
-end
-
-
-
-
-
-
-
 to drug
-    let strength 0.25
+    let strength DrugStrength / 100
     let newViruses [ ]
+    let dp [ ]
+    let rep [ ]
     foreach table:to-list VirusGenotypes [
         ;; item 0 = Container Key
         ;; item 1 = Dictionary 
         let containerKey item 0 ? 
-        let dp DeathProbability
-        let rep ReplicationProbability
         let drugdp 0
         let drugrep 0
         ;; Drug affected container
         
-        
         if not(empty? filter [ containerKey = ? ] DrugContainers) [
-            set drugdp DeathProbability * strength
-            set drugrep ReplicationProbability * strength
+            set drugdp DeathProbability * DrugStrength
+            set drugrep ReplicationProbability * DrugStrength
         ]
 
 
@@ -106,8 +76,6 @@ to drug
             ]
         ]
     ]
-   
-    
     
    ;; merge temp dict and regular
    foreach newViruses [

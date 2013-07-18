@@ -37,9 +37,9 @@ to setup
   set GridCount WorldLength * WorldLength                                ;; Number of grids
   set VirusSequenceLength 10
   set MutationSequenceLength 10
-  set VirusSequence (n-values VirusSequenceLength [0])
+  set VirusSequence (n-values VirusSequenceLength [one-of [0 1]])
   
-  set DrugSequence [ 0 0 0 0 ]
+  set DrugSequence (n-values DrugSequenceLength [one-of [0 1]])
   set DrugContainers [ ]
   initContainers
   initVirusGenotypes
@@ -71,7 +71,6 @@ to go
   if VirusCounts = 0 [ output-print "\n--[[ No Viruses Left ]]--" if DebugDraw [ drawVirusCounts ] stop ] 
   if isInfected? 0 [ output-print "\n--[[ Infected Goal Container 0 ]]--" if DebugDraw [ drawVirusCounts ] stop ]
   set TickTime parseTime date-and-time 
-  print TickTime 
   drug
   
   if DebugDraw [ drawVirusCounts ]
@@ -117,8 +116,6 @@ to-report runTime [ time ]
   let result [ ]
   let i 1
   repeat 3 [
-      print item i time
-      print item i t
       set result lput format (maxv (item i time) (item i t)) result
       set i i + 1
   ]
@@ -172,7 +169,7 @@ to drawVirusCounts
       ifelse c > 0 [ 
           graphics:set-text-color rgb 200 3 3
       ][ graphics:set-text-color DrawVirusCountColor ]
-      graphics:draw-text (item 0 xy )  (item 1 xy + 1.15) "C" (word item i VirusContainerCounts)
+      graphics:draw-text (item 0 xy )  (item 1 xy) "C" (word item i VirusContainerCounts)
       set i i + 1
   ]
 end
@@ -315,6 +312,26 @@ to-report convertDecimal [ num ]
   ]
   report total
 end
+
+to-report factorial [ n ]
+  if n = 0 [ report 1 ]
+  let result 1
+  let i 1
+  repeat n [
+      set result result * i
+      set i i + 1
+  ]
+  report result
+end
+
+;; (x ^ k / k!) ( e ^ - k)
+to-report poisson [ lambda k ]
+  print (lambda ^ k)
+  print  e ^ (k * -1)
+  print (lambda ^ k * e ^ (k * -1))
+  print factorial k
+   report (lambda ^ k * e ^ (lambda * -1)) / factorial k
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 225
@@ -337,8 +354,8 @@ GRAPHICS-WINDOW
 8
 -8
 8
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -423,17 +440,17 @@ ReplicationProbability
 ReplicationProbability
 1
 100
-50
+40
 1
 1
 %
 HORIZONTAL
 
 MONITOR
-5
-455
-120
-500
+10
+485
+125
+530
 Infected Containers
 getInfectedCount
 0
@@ -441,10 +458,10 @@ getInfectedCount
 11
 
 MONITOR
-5
-345
-97
-390
+10
+375
+102
+420
 Virus Count
 VirusCounts
 0
@@ -469,10 +486,10 @@ NIL
 1
 
 SWITCH
-940
-60
-1058
-93
+80
+535
+198
+568
 DebugDraw
 DebugDraw
 0
@@ -480,10 +497,10 @@ DebugDraw
 -1000
 
 MONITOR
-110
-345
-200
-390
+115
+375
+205
+420
 Death rate%
 (TotalVirusCounts - VirusCounts) / TotalVirusCounts * 100
 4
@@ -517,7 +534,7 @@ MovementProbability
 MovementProbability
 0
 100
-15
+45
 1
 1
 %
@@ -558,9 +575,9 @@ NIL
 1
 
 BUTTON
-940
+965
 10
-1052
+1055
 43
 HammingDist
 draw-hd
@@ -575,9 +592,9 @@ NIL
 1
 
 BUTTON
-780
+1070
 10
-912
+1170
 43
 SetupContainers
 setup-containers\ndraw-hd
@@ -600,7 +617,7 @@ DrugStrength
 DrugStrength
 0
 100
-25
+100
 1
 1
 + % 
@@ -626,10 +643,10 @@ PENS
 "Death" 1.0 0 -2674135 true "" "plot (TotalVirusCounts - VirusCounts)"
 
 MONITOR
-5
-400
-95
-445
+10
+430
+100
+475
 Dead
 TotalVirusCounts - VirusCounts
 17
@@ -657,9 +674,9 @@ PENS
 BUTTON
 780
 60
-920
+865
 93
-AddDrugContainers
+Add Drug
 addDrugContainers
 T
 1
@@ -672,11 +689,11 @@ NIL
 1
 
 BUTTON
-1070
+880
 60
-1247
+980
 93
-NIL
+Remove Drug
 removeDrugContainers
 T
 1
@@ -687,6 +704,21 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+5
+320
+205
+353
+DrugSequenceLength
+DrugSequenceLength
+0
+10
+10
+1
+1
+bits
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1036,60 +1068,6 @@ NetLogo 5.0.4
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="Drugless" repetitions="1" runMetricsEveryStep="true">
-    <setup>setup</setup>
-    <go>go</go>
-    <timeLimit steps="35"/>
-    <metric>VirusCount</metric>
-    <metric>TotalVirusCount</metric>
-    <metric>MutationCount</metric>
-    <metric>length filter [ ? = 0 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 1 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 2 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 3 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 4 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 5 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 6 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 7 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 8 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 9 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 10 ] TotalVirusGenotypes</metric>
-    <enumeratedValueSet variable="DebugDraw">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="ReplicationProbability">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <steppedValueSet variable="DeathProbability" first="5" step="1" last="10"/>
-    <steppedValueSet variable="MutationProbability" first="10" step="1" last="15"/>
-  </experiment>
-  <experiment name="aws" repetitions="1" runMetricsEveryStep="true">
-    <setup>setup</setup>
-    <go>go</go>
-    <timeLimit steps="35"/>
-    <metric>VirusCount</metric>
-    <metric>TotalVirusCount</metric>
-    <metric>MutationCount</metric>
-    <metric>length filter [ ? = 0 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 1 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 2 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 3 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 4 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 5 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 6 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 7 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 8 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 9 ] TotalVirusGenotypes</metric>
-    <metric>length filter [ ? = 10 ] TotalVirusGenotypes</metric>
-    <enumeratedValueSet variable="DebugDraw">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="ReplicationProbability">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <steppedValueSet variable="DeathProbability" first="5" step="1" last="7"/>
-    <steppedValueSet variable="MutationProbability" first="10" step="1" last="12"/>
-  </experiment>
   <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
