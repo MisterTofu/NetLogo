@@ -725,7 +725,7 @@ GenomeLength
 GenomeLength
 10
 100
-11
+10
 1
 1
 bits

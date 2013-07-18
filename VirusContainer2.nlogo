@@ -10,7 +10,6 @@ globals [
    WorldLength
    GridCount
    
-   MutationCount
 
    
    DrugSequence
@@ -336,14 +335,14 @@ NIL
 
 SLIDER
 5
-135
+200
 205
-168
+233
 MutationProbability
 MutationProbability
 0
 100
-10
+15
 1
 1
 %
@@ -351,9 +350,9 @@ HORIZONTAL
 
 SLIDER
 5
-95
+160
 205
-128
+193
 DeathProbability
 DeathProbability
 0
@@ -373,9 +372,9 @@ OUTPUT
 
 SLIDER
 5
-55
+120
 205
-88
+153
 ReplicationProbability
 ReplicationProbability
 1
@@ -399,9 +398,9 @@ getInfectedCount
 
 MONITOR
 5
-225
+290
 97
-270
+335
 Virus Count
 VirusCounts
 0
@@ -410,9 +409,9 @@ VirusCounts
 
 BUTTON
 5
-465
+65
 72
-498
+98
 5 Step
 repeat 5 [ go ]
 NIL
@@ -438,31 +437,9 @@ DebugDraw
 
 MONITOR
 110
-225
-205
-270
-NIL
-MutationCount
-0
-1
-11
-
-MONITOR
-110
-285
-205
-330
-Mutation Rate %
-MutationCount / VirusCounts * 100
-8
-1
-11
-
-MONITOR
-5
-285
-95
-330
+290
+200
+335
 Death rate%
 (TotalVirusCounts - VirusCounts) / TotalVirusCounts * 100
 4
@@ -507,9 +484,9 @@ PENS
 
 SLIDER
 5
-175
+240
 205
-208
+273
 MovementProbability
 MovementProbability
 0
@@ -522,9 +499,9 @@ HORIZONTAL
 
 BUTTON
 145
-465
+65
 208
-498
+98
 Step
 go
 NIL
@@ -539,9 +516,9 @@ NIL
 
 BUTTON
 75
-465
+65
 142
-498
+98
 2 Step
 go go
 NIL
