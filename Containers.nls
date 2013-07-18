@@ -45,18 +45,26 @@ to setSequences [ node ]
     ][
         ifelse length constraints = 1 [ ;; Some containers only have 1 previously set container
               set temp shuffle (array:item ContainerSequences (item 0 constraints)) 
-              while [ not (hammingdistance temp array:item ContainerSequences item 0 constraints = n-distance) ] [
+              while [ not (hammingdistance temp array:item ContainerSequences item 0 constraints = n-distance) 
+                        or (temp = array:item ContainerSequences item 0 constraints)] [
                   ;; Keep shuffling container sequences, until hamming distances is n-dstance
                   set temp shuffle (array:item ContainerSequences (item 0 constraints))
               ]
         ][
             ;; two constraints and check if hamming distance is too far
              ifelse(hammingDistance array:item ContainerSequences (item 0 constraints) array:item ContainerSequences (item 1 constraints) <= (n-distance * 3)) [
+               
                   set temp shuffle (array:item ContainerSequences (item random 1 constraints)) ;; Get one of the two nodes that have just been assigned
-                  while [ not (hammingDistance temp array:item ContainerSequences item 0 constraints = n-distance) or not (hammingDistance temp array:item ContainerSequences item 1 constraints = n-distance)][
+                  while [ not (hammingDistance temp array:item ContainerSequences item 0 constraints = n-distance) 
+                            or not (hammingDistance temp array:item ContainerSequences item 1 constraints = n-distance) ;; while hamming is not within two of the parents
+                           or (temp = array:item ContainerSequences item 0 constraints)                                 ;; Make sure they are not the same as the parents
+                            or (temp = array:item ContainerSequences item 1 constraints) ][
+                            
                        ;; Keep shuffling one of the two container sequences, until hamming distances match 
-                       set temp shuffle (array:item ContainerSequences (item random 1 constraints))
+                       
+                       set temp shuffleBits (item random 1 constraints)
 
+                       
                    ]
              ][
                  output-print "Hamming Distance too far, Possible to restart? stopping"
@@ -72,9 +80,8 @@ to setSequences [ node ]
     ]
 end
 
-to shuffleBits [ c ]
-  array:set ContainerSequences c shuffle (array:item ContainerSequences c)
-  draw-hd
+to-report shuffleBits [ c ]
+  report shuffle (array:item ContainerSequences c)
 end
 
 ;; Flips two bits in container sequence,

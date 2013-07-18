@@ -79,7 +79,7 @@ to drug
             let hd hammingDistance (item 0 ?) (array:item ContainerSequences containerKey)
             set dp DeathProbability + (hd / 50 * DeathProbability) + drugdp
             set rep ReplicationProbability - (hd / 50 * ReplicationProbability) - drugrep
-            print(word "Death: " dp "     Replication: " rep "       Hamming: " hd)
+;            print(word "Death: " dp "     Replication: " rep "       Hamming: " hd)
             
             ;; calculate how many would die/replicate            
             repeat (item 1 ? ) [ ;; Repeat the number of viruses with genotype in dictionary iteration

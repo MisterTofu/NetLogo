@@ -10,8 +10,6 @@ globals [
    WorldLength
    GridCount
    
-
-   
    DrugSequence
    DrugContainers
    
@@ -61,7 +59,7 @@ to setup
   graphics:initialize  min-pxcor max-pycor patch-size
   graphics:set-font "MonoSpaced" "Bold" 13
 ;  setup-env
-    set StartTime date-and-time
+  set StartTime date-and-time
   if DebugDraw [ drawVirusCounts ] ;foreach DrugContainers [ ask patches with [container = ?] [ set pcolor green ]] ]
   reset-ticks
 end
@@ -74,10 +72,17 @@ to go
   drug
   if DebugDraw [ drawVirusCounts ]
   
-  output-print (word "TotalTime: " runTime StartTime "   Tick: " runTime start "      Virus: " VirusCounts "  Infected: " getInfectedCount)
+  output-print (word  date-and-time "  Tick: " runTime start "     Virus: " VirusCounts "    Infected: " getInfectedCount)
   tick 
 end
 
+
+to addDrugContainers
+  if mouse-down?
+  [ 
+      ask patch mouse-xcor mouse-ycor [ if not (container = -1) and empty? filter [ ? = container ] DrugContainers  [ set DrugContainers lput container DrugContainers set pcolor green   ] ]     
+  ]
+end
 
 ;; This does not handle: t < time, eg an hour passes
 to-report runTime [ time ]
@@ -357,7 +362,7 @@ DeathProbability
 DeathProbability
 0
 100
-10
+15
 1
 1
 %
@@ -387,9 +392,9 @@ HORIZONTAL
 
 MONITOR
 5
-345
+455
 120
-390
+500
 Infected Containers
 getInfectedCount
 0
@@ -398,9 +403,9 @@ getInfectedCount
 
 MONITOR
 5
-290
+345
 97
-335
+390
 Virus Count
 VirusCounts
 0
@@ -425,10 +430,10 @@ NIL
 1
 
 SWITCH
-30
-410
-148
-443
+940
+60
+1058
+93
 DebugDraw
 DebugDraw
 0
@@ -437,9 +442,9 @@ DebugDraw
 
 MONITOR
 110
-290
+345
 200
-335
+390
 Death rate%
 (TotalVirusCounts - VirusCounts) / TotalVirusCounts * 100
 4
@@ -447,28 +452,10 @@ Death rate%
 11
 
 PLOT
-1140
-400
-1300
-520
-Diversity HD
-Hamming Distance
-Virus Population
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 1 -16777216 true "" "histogram TotalVirusGenotypes"
-
-PLOT
-815
-375
-1125
-535
+790
+425
+1080
+570
 Diversity Genotype
 NIL
 NIL
@@ -491,7 +478,7 @@ MovementProbability
 MovementProbability
 0
 100
-10
+50
 1
 1
 %
@@ -532,9 +519,9 @@ NIL
 1
 
 BUTTON
-775
+940
 10
-887
+1052
 43
 HammingDist
 draw-hd
@@ -549,13 +536,93 @@ NIL
 1
 
 BUTTON
-776
-57
-908
-90
+780
+10
+912
+43
 SetupContainers
-setup-containers
+setup-containers\ndraw-hd
 NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+5
+280
+205
+313
+DrugStrength
+DrugStrength
+0
+100
+95
+1
+1
++ % 
+HORIZONTAL
+
+PLOT
+780
+275
+1000
+395
+Growth/Death
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"Viruses" 1.0 0 -7500403 true "" "plot VirusCounts"
+"Death" 1.0 0 -2674135 true "" "plot (TotalVirusCounts - VirusCounts)"
+
+MONITOR
+5
+400
+95
+445
+Dead
+TotalVirusCounts - VirusCounts
+17
+1
+11
+
+PLOT
+1015
+275
+1235
+395
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot getInfectedCount"
+
+BUTTON
+780
+60
+920
+93
+AddDrugContainers
+addDrugContainers
+T
 1
 T
 OBSERVER
@@ -967,23 +1034,26 @@ NetLogo 5.0.4
     <steppedValueSet variable="DeathProbability" first="5" step="1" last="7"/>
     <steppedValueSet variable="MutationProbability" first="10" step="1" last="12"/>
   </experiment>
-  <experiment name="experiment1" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
     <metric>VirusCounts</metric>
+    <enumeratedValueSet variable="DrugStrength">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MovementProbability">
+      <value value="15"/>
+    </enumeratedValueSet>
     <enumeratedValueSet variable="DebugDraw">
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="ReplicationProbability">
       <value value="50"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="DeathProbability">
-      <value value="10"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="MovementProbability">
-      <value value="10"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="MutationProbability">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DeathProbability">
       <value value="10"/>
     </enumeratedValueSet>
   </experiment>
