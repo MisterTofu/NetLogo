@@ -12,26 +12,29 @@
 #include <iostream>
 #include <bitset>
 #include <assert.h>
+#include <string.h>
+#include <iomanip>
 #include <map>
+
 using namespace std;
 
 const int SEQUENCE_LENGTH = 10;
-typedef bitset<SEQUENCE_LENGTH> Sequence;
+
+//typedef bitset<SEQUENCE_LENGTH> Sequence;
 
 class Container {
 	
 public:
-	Container(bitset<SEQUENCE_LENGTH> genotype);
+	Container(bitset<SEQUENCE_LENGTH>  genotype);
 	int getCount();
-	void addGenotype(Sequence g);
-	void removeGenotype(Sequence g);
-	Sequence mutateSequence(Sequence parent);
-	
+	void addGenotype(bitset<SEQUENCE_LENGTH>  g);
+	void removeGenotype(bitset<SEQUENCE_LENGTH>  g);
+	bitset<SEQUENCE_LENGTH>  mutateSequence(bitset<SEQUENCE_LENGTH>  parent);
+	void print();
 private:
-	Sequence containerSequence;
-	int hammingDistance(Sequence seq1, Sequence seq2);
-	Sequence shuffleSequence(Sequence seq, int bits);
-	map<Sequence, int> genotype;
+	bitset<SEQUENCE_LENGTH> containerSequence;
+	int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
+	map<string, int> genotype;
 };
 
 
