@@ -13,6 +13,12 @@
 #include <vector>
 #include <cmath>
 #include <list>
+#include <ctime>
+#include <random>
+#include <boost/random.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+
 using namespace std;
 
 struct Virus {
@@ -28,10 +34,15 @@ public:
 
 	void generateAdjacentContainers();
 	void print();
-	
+	void printGenotypes();
 	void start();
+		int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
 private:
-	int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
+	
+	/* */
+	
+	vector<vector<int>> adjacentContainers; //adjacent containers is not constant for each container
+	vector<vector<int>> constraints;
 	vector<Container> grid;
 	int cSize;
 	int gridCount;
@@ -41,13 +52,21 @@ private:
 	float mutationRate;
 	float fitness;
 	string mutate(string seq);
-//	bitset<SEQUENCE_LENGTH> toBits(string bits);
-	bitset<SEQUENCE_LENGTH> randomBits();
-	string randomBits_s();
-	vector<vector<int>> adjacentContainers; //adjacent containers is not constant for each container
-	vector<vector<int>> constraints;
 	int totalPopulation;
 	int currentPopulation;
+	float drugStrength;
+	int drugBits;
+	
+	/* Functions */
+	
+	bitset<SEQUENCE_LENGTH> randomBits();
+	string randomBits_s();
+	
+	int binomial(int trials, float probability);
+	
+	float random(float start, float end);
+	int randomInteger(int, int);
+
 };
 
 

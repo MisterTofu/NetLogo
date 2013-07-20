@@ -17,64 +17,84 @@ Environment::Environment(int size)
 	generateAdjacentContainers();
 	grid.assign(gridCount, Container());
 	srand ((unsigned)time(NULL));
-	
+
 	for (int x = 0; x < gridCount; x++)
 		grid[x].setContainerSequence(randomBits().to_string());
+
+	
+	deathRate = 0.10;
+	replicationRate = 0.50;
+	movementRate = 0.50;
+	mutationRate = 0.10;
+	fitness = 0.10;				// Increase death rate by up to 10%
+	drugStrength = 0.10;
+	drugBits = 5;
 	
 	
-	deathRate = 10.0;
-	replicationRate = 50.0;
-	movementRate = 50.0;
-	mutationRate = 1.0;
-	fitness = 10.0;
-	totalPopulation = 0;
-	currentPopulation = 0;
+	
+	// initialize first virus
+	grid[0].addGenotype(randomBits_s());
+	totalPopulation = 1;
+	currentPopulation = 1;
 }
+
 
 void Environment::start()
 {
-	grid[0].addGenotype(randomBits_s());
-	totalPopulation++;
-	currentPopulation++;
-//	for(int j = 0; j < 20; j++)
-		vector<string> genotypes;
-		vector<Virus> moving;
-		for (int i = 0; i < gridCount; i++) {
-			genotypes = grid[i].getAllGenotypes();
+	vector<string> genotypes;
+	vector<Virus> moving;
+	float dr = 0.0, rr = 0.0, fit = 0;
+
+	for (int i = 0; i < gridCount; i++) {
+				
+		if (grid[i].getCount() > 0) {
 			//iterate over each genotype
-			for (int j = 0; j < genotypes.size(); j++) {
-				// Iterate over the counts of each genotype, repeat only
-				for(int k = 0;  k < grid[i].getCount(genotypes[j]); k++)
+			genotypes = grid[i].getAllGenotypes();
+			for(int j = 0; j < genotypes.size(); j++)
+			{
+				int hd = grid[i].getHammingDistance(genotypes[j]);
+				fit = (float)hd / (float)SEQUENCE_LENGTH * fitness;
+				dr = deathRate * fit;
+				rr = replicationRate * fit;
+				int d = binomial(grid[i].getCount(genotypes[j]), (deathRate + dr));
+				for(int x = 0; x < d; x++)
 				{
-					// Die
-					if ((rand() % 101) < deathRate) {
-						grid[i].removeGenotype(genotypes[j]);
-						currentPopulation--;
-					}
-					else
-					{
-						if ((rand() % 101) < replicationRate) {
-							grid[i].addGenotype(mutate(genotypes[j]));
-							totalPopulation++;
-							currentPopulation++;
-						}
-						else if((rand() % 101) < replicationRate) {
-							grid[i].removeGenotype(genotypes[j]);
-							Virus virus;
-							virus.container =adjacentContainers[i][(rand() % adjacentContainers[i].size())];
-							virus.genotype = genotypes[j];
-							moving.push_back(virus);
-						}
-					}
+					grid[i].removeGenotype(genotypes[j]);
+					currentPopulation--;
 				}
+				
+				int m = grid[i].getCount(genotypes[j]);
+				int r = binomial(grid[i].getCount(genotypes[j]), (replicationRate - rr));
+				m -= r;
+				
+				for(int x = 0; x < r; x++)
+				{
+					grid[i].addGenotype(mutate(genotypes[j]));
+					totalPopulation++;
+					currentPopulation++;
+				}
+			
+				m = binomial(m, (movementRate / 100));
+					
+				for(int x = 0; x < m; x++)
+				{
+					grid[i].removeGenotype(genotypes[j]);
+					Virus virus;
+
+					virus.container = adjacentContainers[i][rand() % unsigned(adjacentContainers[i].size())];
+					virus.genotype = genotypes[j];
+					moving.push_back(virus);
+				}
+					
 			}
-			genotypes.clear();
 		}
+		genotypes.clear();
+	}
 
 	// Maps are mutable
-	for (int i = 0; i < moving.size(); i++) {
+	for (int i = 0; i < moving.size(); i++)
 		grid[moving[i].container].addGenotype(moving[i].genotype);
-	}
+	
 }
 
 string Environment::mutate(string seq)
@@ -107,7 +127,6 @@ bitset<SEQUENCE_LENGTH> Environment::randomBits()
 		t.flip(rand() % SEQUENCE_LENGTH);
 	return t;
 }
-
 
 
 void Environment::generateAdjacentContainers()
@@ -149,11 +168,43 @@ void Environment::generateAdjacentContainers()
 	}
 }
 
+/*
+float Environment::random(float start, float end)
+{
+	typedef boost::uniform_real<> NumberDistribution;
+	typedef boost::mt19937 RandomNumberGenerator;
+	typedef boost::variate_generator<RandomNumberGenerator&,
+	NumberDistribution> Generator;
+	
+	NumberDistribution distribution(start,end);
+	RandomNumberGenerator generator;
+	Generator numberGenerator(generator, distribution);
+	generator.seed((unsigned)std::time(0)); // seed with the current time
+	
+	return numberGenerator();
+}
+
+int Environment::randomInteger(int start, int end)
+{
+	typedef boost::uniform_int<> NumberDistribution;
+	typedef boost::mt19937 RandomNumberGenerator;
+	typedef boost::variate_generator<RandomNumberGenerator&,
+	NumberDistribution> Generator;
+	
+	NumberDistribution distribution(start,end);
+	RandomNumberGenerator generator;
+	Generator numberGenerator(generator, distribution);
+	generator.seed((unsigned)std::time(0)); // seed with the current time
+	
+	return numberGenerator();
+}
+*/
+
 void Environment::print()
 {
 	bool adjacent = false;
 	bool constr = false;
-	bool contSeq = true;
+	bool contSeq = 1;
 	if (adjacent){
 		for( int x = 0; x < adjacentContainers.size(); x++)
 		{
@@ -175,22 +226,34 @@ void Environment::print()
 	}
 	
 	if (contSeq) {
+		int infected = 0;
 		for (int i = 0; i < gridCount; i++) {
-//			if (grid[i].getCount() > 0) {
-				cout << "Container: " << i << endl;
+			if (grid[i].getCount() > 0) {
+				cout << "=========================" << endl
+					<< "Container: " << i << endl << endl;
 				grid[i].print();
-//			}
+				infected++;
+			}
 
 		}
 		float dead = (float(totalPopulation - currentPopulation));
 		double death = double(dead / totalPopulation) * 100.0;
-		cout << "Total Population: " << totalPopulation << endl
-			<< "Current Population: " << currentPopulation << endl
-			<< "Dead: " << dead << endl
-			<< "Death Rate: " << setprecision(8) << death;
+		cout << "\n\n====================" << endl;
+		cout << "Current Population: " << currentPopulation
+		<< " / " << totalPopulation  << endl
+		<< "Dead: " << dead << endl
+		<< "Death Rate: " << setprecision(8) << death << endl
+		<< "Infected Containers: " << infected;
 	}
 }
 
+int Environment::binomial(int trials, float probability)
+{
+	std::random_device rd;
+    std::mt19937 gen(rd());
+    std::binomial_distribution<> d(trials, probability);
+	return d(gen);
+}
 
 int Environment::hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2)
 {

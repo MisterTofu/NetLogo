@@ -33,7 +33,7 @@ void Container::addGenotype(string g)
 	else
 	{
 		genotype.insert(pair<string, int>(g, 1));
-		hamming[g] = hammingDistance(toBits(containerSequence), toBits(g));
+		hamming.insert(pair<string,int>(g, hammingDistance(toBits(containerSequence), toBits(g))));
 	}
 	count++;
 }
@@ -104,7 +104,7 @@ string Container::getContainerSequence()
 
 bitset<SEQUENCE_LENGTH> Container::toBits(string bits)
 {
-	bitset<SEQUENCE_LENGTH> mybits (bits);
+	bitset<SEQUENCE_LENGTH> mybits ((string(bits)));
 	return mybits;
 }
 
@@ -112,8 +112,7 @@ bitset<SEQUENCE_LENGTH> Container::toBits(string bits)
 void Container::print()
 {
 	int width = SEQUENCE_LENGTH * 2;
-	cout << "======================================="
-			<< endl << endl
+	cout
 			<< "Container: " << containerSequence
 			<< setw(width)
 			<< "Total: " << getCount() << endl
@@ -130,7 +129,6 @@ void Container::print()
 			<< setw(width) << toBits(it->first).to_ullong()
 			<< setw(width) << it->second << endl;
 	}
-	cout << endl;
 }
 
 

@@ -5,49 +5,44 @@
 //  Created by Travis on 7/19/13.
 //  Copyright (c) 2013 Travis. All rights reserved.
 //
+
 #include <stdio.h>
 #include <iostream>
 #include <time.h>
 #include <stdlib.h>     /* srand, rand */
 #include "container.h"
 #include "Environment.h"
-
+#include <ctime>
 using namespace std;
 
+double elapsed(clock_t begin)
+{
+	clock_t end = clock();
+	return double(end - begin) / CLOCKS_PER_SEC;
+}
 
 int main(int argc, const char * argv[])
 {
 
-	bitset<10> t,t2;
-	/* initialize random seed: */
-//	srand (time(NULL));
-//	
-//	/* generate secret number between 1 and 10: */
-//	int random = rand() % 10;
-//	for (int x = 0; x < random; x++)
-//	{
-//		t.flip(rand() % 10);
-//		t2.flip(rand() % 10);
-//	}
-//	
-//	cout << "t1: " << t << "\nt2: " << t2 << "   " << (t ^ t2) << "\n   " << (t & t2) << "\n   " << (t | t2);
+	clock_t begin = clock();
 	
-//	Container c1 = Container(t);
-//	c1.addGenotype(t.flip());
-//	c1.print();
-//	
-//	c1.removeGenotype(t);
-//	c1.print();
-
-	
-	Environment env = Environment(8);
+	Environment env = Environment(8);	
 	for (int i = 0; i < 30; i++) {
-		cout << "iteration: " << i << endl;
+		clock_t start = clock();
 		env.start();
+//		cout << "Generation: " << i <<"\t\tElapsed: " << setprecision(10) << elapsed(start) <<"\t\tTotal: " << elapsed(begin) << endl;
 	}
 	env.print();
-
+//	bitset<10> t1,t2;
+//	string x = t1.to_string();
+//		t2.flip();
+//	cout << env.hammingDistance(t1, t2) << endl;
+//	bitset<10> t3 ((string(x)));
+//	cout << env.hammingDistance(t3, t2) << endl;
 	
+	cout << "\n\nTotal Elapsed: " << elapsed(begin);
+
     return 0;
 }
+
 
