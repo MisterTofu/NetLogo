@@ -41,7 +41,10 @@ int main(int argc, const char * argv[])
 
 	
 	Environment env = Environment(8);
-	env.start();
+	for (int i = 0; i < 30; i++) {
+		cout << "iteration: " << i << endl;
+		env.start();
+	}
 	env.print();
 
 	

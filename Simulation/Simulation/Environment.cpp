@@ -19,52 +19,85 @@ Environment::Environment(int size)
 	srand ((unsigned)time(NULL));
 	
 	for (int x = 0; x < gridCount; x++)
-		grid[x].setSequence(randomBits());
+		grid[x].setContainerSequence(randomBits().to_string());
 	
 	
-	deathRate = 50.0;
+	deathRate = 10.0;
 	replicationRate = 50.0;
+	movementRate = 50.0;
 	mutationRate = 1.0;
 	fitness = 10.0;
+	totalPopulation = 0;
+	currentPopulation = 0;
 }
 
 void Environment::start()
 {
-	grid[gridCount-1].addGenotype(randomBits());
-//	grid[gridCount-1].print();
+	grid[0].addGenotype(randomBits_s());
+	totalPopulation++;
+	currentPopulation++;
+//	for(int j = 0; j < 20; j++)
+		vector<string> genotypes;
+		vector<Virus> moving;
+		for (int i = 0; i < gridCount; i++) {
+			genotypes = grid[i].getAllGenotypes();
+			//iterate over each genotype
+			for (int j = 0; j < genotypes.size(); j++) {
+				// Iterate over the counts of each genotype, repeat only
+				for(int k = 0;  k < grid[i].getCount(genotypes[j]); k++)
+				{
+					// Die
+					if ((rand() % 101) < deathRate) {
+						grid[i].removeGenotype(genotypes[j]);
+						currentPopulation--;
+					}
+					else
+					{
+						if ((rand() % 101) < replicationRate) {
+							grid[i].addGenotype(mutate(genotypes[j]));
+							totalPopulation++;
+							currentPopulation++;
+						}
+						else if((rand() % 101) < replicationRate) {
+							grid[i].removeGenotype(genotypes[j]);
+							Virus virus;
+							virus.container =adjacentContainers[i][(rand() % adjacentContainers[i].size())];
+							virus.genotype = genotypes[j];
+							moving.push_back(virus);
+						}
+					}
+				}
+			}
+			genotypes.clear();
+		}
 
-	map<string, int>::iterator it;
-	for(int i = 0; i < 5; i++)
-	{
-//		grid[i].print();
-		bitset<SEQUENCE_LENGTH> t = randomBits();
-		grid[i].addGenotype(randomBits());
-		grid[i].addGenotype(randomBits());
-		grid[i].addGenotype(randomBits());
-		grid[i].addGenotype(t);
-		grid[i].removeGenotype(t);
-//		grid[i].print();
+	// Maps are mutable
+	for (int i = 0; i < moving.size(); i++) {
+		grid[moving[i].container].addGenotype(moving[i].genotype);
 	}
-	
-//	for(int i = 0; i < 5; i++)
-//	{
-//		if (grid[i].getCount() > 0) {
-//			for(it = grid[i].genotype.begin(); it != grid[i].genotype.end(); ++it)
-//			{
-//				//first: sequence, second: counts
-//				if((rand() % 100 + 1) < deathRate) {
-////					grid[i].print();
-//					bitset<SEQUENCE_LENGTH> bits (string(it->first));
-//					cout << bits << endl;
-//					grid[i].removeGenotype(bits);
-////					grid[i].print();
-//				}
-//			}
-//		}
-//	}
-
 }
 
+string Environment::mutate(string seq)
+{
+	bitset<SEQUENCE_LENGTH> bits (seq);
+	for (int x = 0; x < bits.size(); x++) {
+		if ((rand() % 101) < mutationRate) {
+			bits[x] = (rand() % 2);
+		}
+	}
+	return bits.to_string();
+}
+
+//bitset<SEQUENCE_LENGTH> Environment::toBits(string bits)
+//{
+//	bitset<SEQUENCE_LENGTH> mybits (bits);
+//	return mybits;
+//}
+
+string Environment::randomBits_s()
+{
+	return randomBits().to_string();
+}
 
 bitset<SEQUENCE_LENGTH> Environment::randomBits()
 {
@@ -120,7 +153,7 @@ void Environment::print()
 {
 	bool adjacent = false;
 	bool constr = false;
-	bool contSeq = 0;
+	bool contSeq = true;
 	if (adjacent){
 		for( int x = 0; x < adjacentContainers.size(); x++)
 		{
@@ -143,9 +176,18 @@ void Environment::print()
 	
 	if (contSeq) {
 		for (int i = 0; i < gridCount; i++) {
-			if(grid[i].getSequence().count() > 0)
-				cout <<i << ":\t"<< grid[i].getSequence() << endl;
+//			if (grid[i].getCount() > 0) {
+				cout << "Container: " << i << endl;
+				grid[i].print();
+//			}
+
 		}
+		float dead = (float(totalPopulation - currentPopulation));
+		double death = double(dead / totalPopulation) * 100.0;
+		cout << "Total Population: " << totalPopulation << endl
+			<< "Current Population: " << currentPopulation << endl
+			<< "Dead: " << dead << endl
+			<< "Death Rate: " << setprecision(8) << death;
 	}
 }
 

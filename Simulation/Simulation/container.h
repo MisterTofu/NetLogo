@@ -15,7 +15,7 @@
 #include <string.h>
 #include <iomanip>
 #include <map>
-
+#include <vector>
 using namespace std;
 
 const int SEQUENCE_LENGTH = 10;
@@ -25,26 +25,36 @@ const int SEQUENCE_LENGTH = 10;
 class Container {
 	
 public:
-	Container(bitset<SEQUENCE_LENGTH>  genotype);
+	Container(string seq);
 	Container();
-	
+	void setContainerSequence(string g);
 	int getCount();
-	int getCount(bitset<SEQUENCE_LENGTH> g);
-	void addGenotype(bitset<SEQUENCE_LENGTH>  g);
-	void removeGenotype(bitset<SEQUENCE_LENGTH>  g);
+	int getCount(string g);
+	int getHammingDistance(string g);
+	void addGenotype(string  g);
+	void removeGenotype(string g);
+	vector<string> getAllGenotypes();
+	bitset<SEQUENCE_LENGTH> toBits(string bits);
+	string getContainerSequence();
+	
+	
 	bitset<SEQUENCE_LENGTH>  mutateSequence(bitset<SEQUENCE_LENGTH>  parent, float mutation);
 	void print();
 	void death(float death, float, float, float);
 	void replicate(float replication, float mutation);
-	void setSequence(bitset<SEQUENCE_LENGTH> g);
-	bitset<SEQUENCE_LENGTH> getSequence();
-	map<string, int> genotype;
-	map<string, int> hamming;
+	
+	
+
 	
 private:
-	bitset<SEQUENCE_LENGTH> containerSequence;
-	bitset<SEQUENCE_LENGTH> mutate(float prob);
+	map<string, int> genotype;
+	map<string, int> hamming;
+	string containerSequence;
 	int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
+	int count;
+	
+	
+	bitset<SEQUENCE_LENGTH> mutate(float prob);
 
 };
 

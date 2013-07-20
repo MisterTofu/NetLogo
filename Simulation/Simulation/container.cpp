@@ -10,19 +10,131 @@
 #include "container.h"
 
 
-Container::Container(bitset<SEQUENCE_LENGTH>  g)
+Container::Container(string seq)
 {
-	containerSequence = g;
-//	genotype.insert( pair<string, int>(g.to_string(), 1));
+	containerSequence = seq;
 	srand ((unsigned)time(NULL));
+	count = 0;
 }
 
 Container::Container()
 {
-	
+	srand ((unsigned)time(NULL));
+	count = 0;
 }
 
 
+void Container::addGenotype(string g)
+{
+	map<string, int>::iterator it;
+	it = genotype.find(g);
+	if (it != genotype.end()) //found element
+		genotype[g] = genotype[g] + 1;
+	else
+	{
+		genotype.insert(pair<string, int>(g, 1));
+		hamming[g] = hammingDistance(toBits(containerSequence), toBits(g));
+	}
+	count++;
+}
+
+
+// Doesn't remove hamming distance, not exactly important unless memory is needed
+void Container::removeGenotype(string g)
+{
+	map<string, int>::iterator it;
+	it = genotype.find(g);
+	if(it != genotype.end()) //we have the element
+	{
+		if (it->second == 1)
+			genotype.erase(g); // only one element, erase entry
+		else
+			genotype[g] =  genotype[g] - 1; // decrement entry
+	}
+	count--;
+}
+
+vector<string> Container::getAllGenotypes()
+{
+	vector<string> result;
+	if (getCount() > 0) {
+		map<string, int>::iterator it;
+		for (it = genotype.begin(); it != genotype.end(); ++it)
+			result.push_back(it->first);
+	}
+	return result;
+}
+
+void Container::setContainerSequence(string seq)
+{
+	containerSequence = seq;
+}
+
+int	Container::getCount()
+{
+	return count;
+}
+
+
+int Container::getHammingDistance(string g)
+{
+	map<string, int>::iterator it;
+	it = hamming.find(g);
+	if(it != hamming.end()) //we have the element
+		return it->second;
+	return 0;
+}
+
+
+int Container::getCount(string g)
+{
+	map<string, int>::iterator it;
+	it = genotype.find(g);
+	if(it != genotype.end()) //we have the element
+		return it->second;
+	return 0;
+}
+
+
+string Container::getContainerSequence()
+{
+	return containerSequence;
+}
+
+
+bitset<SEQUENCE_LENGTH> Container::toBits(string bits)
+{
+	bitset<SEQUENCE_LENGTH> mybits (bits);
+	return mybits;
+}
+
+
+void Container::print()
+{
+	int width = SEQUENCE_LENGTH * 2;
+	cout << "======================================="
+			<< endl << endl
+			<< "Container: " << containerSequence
+			<< setw(width)
+			<< "Total: " << getCount() << endl
+	
+			<< setw(width+9) << "Sequence"
+			<< setw(width) << "Integer"
+			<< setw(width) << "Count" << endl;
+	
+	map<string, int>::iterator it;
+	for (it=genotype.begin(); it!=genotype.end(); ++it)
+	{
+		cout << "Sequence: "
+			<<setw(width) << it->first
+			<< setw(width) << toBits(it->first).to_ullong()
+			<< setw(width) << it->second << endl;
+	}
+	cout << endl;
+}
+
+
+/********************************
 
 
 void Container::replicate(float replication, float mutation)
@@ -61,43 +173,10 @@ bitset<SEQUENCE_LENGTH> Container::mutateSequence(bitset<SEQUENCE_LENGTH> parent
 }
 
 
-void Container::setSequence(bitset<SEQUENCE_LENGTH> g)
-{
-	containerSequence = g;
-}
-
-void Container::addGenotype(bitset<SEQUENCE_LENGTH> g)
-{
-	map<string, int>::iterator it;
-	it = genotype.find(g.to_string());
-	if (it != genotype.end()) //found element
-		genotype[g.to_string()] = genotype[g.to_string()] + 1;
-	else
-	{
-		genotype[g.to_string()] = 1;
-		hamming[g.to_string()] = hammingDistance(containerSequence, g);
-	}
-	
-}
 
 
-// Assume sequence exists
-void Container::removeGenotype(bitset<SEQUENCE_LENGTH> g)
-{
-	map<string, int>::iterator it;
-	it = genotype.find(g.to_string());
-	if(it != genotype.end()) //we have the element
-	{
-		
-		if (it->second == 1) {
-			genotype.erase(g.to_string()); // only one element, erase entry
-			hamming.erase(g.to_string());
-		}
-		else
-			genotype[g.to_string()] =  genotype[g.to_string()] - 1; // decrement entry
-	}
-	
-}
+
+
 
 
 int	Container::getCount()
@@ -109,30 +188,11 @@ int	Container::getCount()
 	return count;
 }
 
-bitset<SEQUENCE_LENGTH> Container::getSequence()
-{
-	return containerSequence;
-}
-
-void Container::print()
-{
-	
-	int width = SEQUENCE_LENGTH * 1.5 + 2;
-	cout <<"=======================================\n\nContainer: " << containerSequence
-	<< setw(width) << "Total: " << getCount() << endl;
-	
-	cout << setw(width+9) << "Sequence" << setw(width) << "Integer" << setw(width)<< "Hamming" <<setw(width)<<"Count\n";
-	map<string, int>::iterator it;
-	for (it=genotype.begin(); it!=genotype.end(); ++it)
-	{
-		cout << "Sequence: " <<setw(width) << it->first
-		<< setw(width) << bitset<SEQUENCE_LENGTH> (string(it->first)).to_ullong()
-		<< setw(width) << hamming[string(it->first)] << setw(width) << it->second << endl;
-	}
-	cout << endl;
-}
 
 
+
+
+*/
 int Container::hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2)
 {
 	int distance = 0;

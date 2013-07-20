@@ -15,6 +15,11 @@
 #include <list>
 using namespace std;
 
+struct Virus {
+	string genotype;
+	int container;
+};
+
 class Environment {
 	
 public:
@@ -35,11 +40,14 @@ private:
 	float movementRate;
 	float mutationRate;
 	float fitness;
-
+	string mutate(string seq);
+//	bitset<SEQUENCE_LENGTH> toBits(string bits);
 	bitset<SEQUENCE_LENGTH> randomBits();
+	string randomBits_s();
 	vector<vector<int>> adjacentContainers; //adjacent containers is not constant for each container
 	vector<vector<int>> constraints;
-	
+	int totalPopulation;
+	int currentPopulation;
 };
 
 
