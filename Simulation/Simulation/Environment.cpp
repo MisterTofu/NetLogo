@@ -8,7 +8,6 @@
 
 #include "Environment.h"
 
-
 // Create x by x containers
 Environment::Environment(int size)
 {
@@ -17,10 +16,6 @@ Environment::Environment(int size)
 	generateAdjacentContainers();
 	grid.assign(gridCount, Container());
 	srand ((unsigned)time(NULL));
-
-	for (int x = 0; x < gridCount; x++)
-		grid[x].setContainerSequence(randomBits().to_string());
-
 	
 	deathRate = 0.10;
 	replicationRate = 0.50;
@@ -28,9 +23,26 @@ Environment::Environment(int size)
 	mutationRate = 0.10;
 	fitness = 0.10;				// Increase death rate by up to 10%
 	drugStrength = 0.10;
-	drugBits = 5;
-	
-	
+
+	// drug sequence
+	bitset<DRUG_LENGTH> drug;
+	int randomNum = rand() % DRUG_LENGTH;
+	for (int i = 0; i < randomNum; i++)
+		drug.flip(rand() % DRUG_LENGTH);
+
+
+	for (int x = 0; x < gridCount; x++)
+	{
+		grid[x].setContainerSequence(randomBits_s());
+		vector<string> temp = partitonBits(grid[x].getContainerSequence());
+		for (int i = 0; i < temp.size(); i++) {
+			if ((drug ^
+				 bitset<DRUG_LENGTH> (string(temp[i]))).none()) {
+				drugContainers.push_back(0);
+				break;
+			}
+		}
+	}
 	
 	// initialize first virus
 	grid[0].addGenotype(randomBits_s());
@@ -38,15 +50,32 @@ Environment::Environment(int size)
 	currentPopulation = 1;
 }
 
+vector<string> Environment::partitonBits(string seq)
+{
+	vector<string> result;
+	for (int i = 0; i < (SEQUENCE_LENGTH - DRUG_LENGTH + 1); i++)
+	{
+		result.push_back(seq.substr(i, DRUG_LENGTH));
+	}
+	return result;
+}
 
 void Environment::start()
 {
+	// implement adding, drug probability
+	// Also optimization is needed 
 	vector<string> genotypes;
 	vector<Virus> moving;
-	float dr = 0.0, rr = 0.0, fit = 0;
+	float dr = 0.0, rr = 0.0, fit = 0.0;
 
 	for (int i = 0; i < gridCount; i++) {
-				
+		for (int k = 0; k < drugContainers.size(); k++) {
+			if (drugContainers[k] == i) {
+//				drugD = deathRate * drugStrength;
+//				drugR = replicationRate * drugStrength;
+				break;
+			}
+		}
 		if (grid[i].getCount() > 0) {
 			//iterate over each genotype
 			genotypes = grid[i].getAllGenotypes();
@@ -54,11 +83,12 @@ void Environment::start()
 			{
 				int hd = grid[i].getHammingDistance(genotypes[j]);
 				fit = (float)hd / (float)SEQUENCE_LENGTH * fitness;
-				dr = deathRate * fit;
+				dr = deathRate * fit + deathRate * drugStrength;
 				rr = replicationRate * fit;
 				int d = binomial(grid[i].getCount(genotypes[j]), (deathRate + dr));
 				for(int x = 0; x < d; x++)
 				{
+					
 					grid[i].removeGenotype(genotypes[j]);
 					currentPopulation--;
 				}
@@ -90,11 +120,10 @@ void Environment::start()
 		}
 		genotypes.clear();
 	}
-
+	
 	// Maps are mutable
 	for (int i = 0; i < moving.size(); i++)
 		grid[moving[i].container].addGenotype(moving[i].genotype);
-	
 }
 
 string Environment::mutate(string seq)
@@ -108,16 +137,12 @@ string Environment::mutate(string seq)
 	return bits.to_string();
 }
 
-//bitset<SEQUENCE_LENGTH> Environment::toBits(string bits)
-//{
-//	bitset<SEQUENCE_LENGTH> mybits (bits);
-//	return mybits;
-//}
-
 string Environment::randomBits_s()
 {
 	return randomBits().to_string();
 }
+
+
 
 bitset<SEQUENCE_LENGTH> Environment::randomBits()
 {
@@ -168,37 +193,7 @@ void Environment::generateAdjacentContainers()
 	}
 }
 
-/*
-float Environment::random(float start, float end)
-{
-	typedef boost::uniform_real<> NumberDistribution;
-	typedef boost::mt19937 RandomNumberGenerator;
-	typedef boost::variate_generator<RandomNumberGenerator&,
-	NumberDistribution> Generator;
-	
-	NumberDistribution distribution(start,end);
-	RandomNumberGenerator generator;
-	Generator numberGenerator(generator, distribution);
-	generator.seed((unsigned)std::time(0)); // seed with the current time
-	
-	return numberGenerator();
-}
 
-int Environment::randomInteger(int start, int end)
-{
-	typedef boost::uniform_int<> NumberDistribution;
-	typedef boost::mt19937 RandomNumberGenerator;
-	typedef boost::variate_generator<RandomNumberGenerator&,
-	NumberDistribution> Generator;
-	
-	NumberDistribution distribution(start,end);
-	RandomNumberGenerator generator;
-	Generator numberGenerator(generator, distribution);
-	generator.seed((unsigned)std::time(0)); // seed with the current time
-	
-	return numberGenerator();
-}
-*/
 
 void Environment::print()
 {
@@ -244,6 +239,7 @@ void Environment::print()
 		<< "Dead: " << dead << endl
 		<< "Death Rate: " << setprecision(8) << death << endl
 		<< "Infected Containers: " << infected;
+		cout << "\nDrug Containers: " << drugContainers.size() << endl;
 	}
 }
 

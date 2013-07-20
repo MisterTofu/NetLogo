@@ -37,7 +37,7 @@ public:
 	bitset<SEQUENCE_LENGTH> toBits(string bits);
 	string getContainerSequence();
 	
-	
+	bitset<SEQUENCE_LENGTH> getContainerSequenceBits();
 	bitset<SEQUENCE_LENGTH>  mutateSequence(bitset<SEQUENCE_LENGTH>  parent, float mutation);
 	void print();
 	void death(float death, float, float, float);

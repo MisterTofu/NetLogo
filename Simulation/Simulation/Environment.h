@@ -26,6 +26,8 @@ struct Virus {
 	int container;
 };
 
+const int DRUG_LENGTH = 5;
+
 class Environment {
 	
 public:
@@ -37,6 +39,8 @@ public:
 	void printGenotypes();
 	void start();
 		int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
+	
+	vector<string> partitonBits(string seq);
 private:
 	
 	/* */
@@ -44,6 +48,7 @@ private:
 	vector<vector<int>> adjacentContainers; //adjacent containers is not constant for each container
 	vector<vector<int>> constraints;
 	vector<Container> grid;
+	vector<int> drugContainers;
 	int cSize;
 	int gridCount;
 	float deathRate;
@@ -55,13 +60,13 @@ private:
 	int totalPopulation;
 	int currentPopulation;
 	float drugStrength;
-	int drugBits;
+	int drugLength;
+	
 	
 	/* Functions */
 	
 	bitset<SEQUENCE_LENGTH> randomBits();
 	string randomBits_s();
-	
 	int binomial(int trials, float probability);
 	
 	float random(float start, float end);

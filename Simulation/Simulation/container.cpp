@@ -95,6 +95,10 @@ int Container::getCount(string g)
 	return 0;
 }
 
+bitset<SEQUENCE_LENGTH> Container::getContainerSequenceBits()
+{
+	return toBits(containerSequence);
+}
 
 string Container::getContainerSequence()
 {
@@ -132,65 +136,6 @@ void Container::print()
 }
 
 
-/********************************
-
-
-void Container::replicate(float replication, float mutation)
-{
-	map<string, int>::iterator it;
-	for (it=genotype.begin(); it!=genotype.end(); ++it)
-	{
-		if ((rand() % 100 + 1) < replication)
-		{
-			addGenotype(mutateSequence(bitset<SEQUENCE_LENGTH>(string(it->first)), mutation));
-		}
-	}
-}
-
-int Container::getCount(bitset<SEQUENCE_LENGTH> g)
-{
-	map<string, int>::iterator it;
-	it = genotype.find(g.to_string());
-	if (it != genotype.end()) //found element
-		return genotype[g.to_string()];
-	else
-		return -1;
-}
-
-
-
-bitset<SEQUENCE_LENGTH> Container::mutateSequence(bitset<SEQUENCE_LENGTH> parent, float mutation)
-{
-	for (int i = 0; i < parent.size(); i++)
-	{
-		if((rand() % 100 + 1) < mutation) {
-			parent[i] = rand() % 2;
-		}
-	}
-	return parent;
-}
-
-
-
-
-
-
-
-
-int	Container::getCount()
-{
-	int count = 0;
-	map<string, int>::iterator it;
-	for (it=genotype.begin(); it!=genotype.end(); ++it)
-		count += it->second;
-	return count;
-}
-
-
-
-
-
-*/
 int Container::hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2)
 {
 	int distance = 0;

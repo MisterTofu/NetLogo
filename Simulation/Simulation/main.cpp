@@ -21,6 +21,29 @@ double elapsed(clock_t begin)
 	return double(end - begin) / CLOCKS_PER_SEC;
 }
 
+string elapsed_s(clock_t begin)
+{
+	string result;
+	clock_t end = clock();
+	double seconds = (end - begin) / CLOCKS_PER_SEC;
+	int minutes = 0;
+	while (seconds > 60)
+	{
+		minutes++;
+		seconds -= 60;
+	}
+	if (minutes < 10 && minutes > 0) {
+		result = "0" + to_string(minutes) + ":" + to_string(seconds);
+	}
+	else
+	{
+		result = "00:" + to_string(seconds);
+	}
+
+	return result;
+}
+
+
 int main(int argc, const char * argv[])
 {
 
@@ -30,9 +53,12 @@ int main(int argc, const char * argv[])
 	for (int i = 0; i < 30; i++) {
 		clock_t start = clock();
 		env.start();
-//		cout << "Generation: " << i <<"\t\tElapsed: " << setprecision(10) << elapsed(start) <<"\t\tTotal: " << elapsed(begin) << endl;
+		cout << "Generation: " << i <<"\t\tElapsed: " << setprecision(10) << elapsed(start) <<"\t\tTotal: " << elapsed(begin) << endl;
 	}
 	env.print();
+	
+	
+	
 //	bitset<10> t1,t2;
 //	string x = t1.to_string();
 //		t2.flip();
