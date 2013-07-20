@@ -20,21 +20,32 @@ using namespace std;
 
 const int SEQUENCE_LENGTH = 10;
 
-//typedef bitset<SEQUENCE_LENGTH> Sequence;
+
 
 class Container {
 	
 public:
 	Container(bitset<SEQUENCE_LENGTH>  genotype);
+	Container();
+	
 	int getCount();
+	int getCount(bitset<SEQUENCE_LENGTH> g);
 	void addGenotype(bitset<SEQUENCE_LENGTH>  g);
 	void removeGenotype(bitset<SEQUENCE_LENGTH>  g);
-	bitset<SEQUENCE_LENGTH>  mutateSequence(bitset<SEQUENCE_LENGTH>  parent);
+	bitset<SEQUENCE_LENGTH>  mutateSequence(bitset<SEQUENCE_LENGTH>  parent, float mutation);
 	void print();
+	void death(float death, float, float, float);
+	void replicate(float replication, float mutation);
+	void setSequence(bitset<SEQUENCE_LENGTH> g);
+	bitset<SEQUENCE_LENGTH> getSequence();
+	map<string, int> genotype;
+	map<string, int> hamming;
+	
 private:
 	bitset<SEQUENCE_LENGTH> containerSequence;
+	bitset<SEQUENCE_LENGTH> mutate(float prob);
 	int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
-	map<string, int> genotype;
+
 };
 
 

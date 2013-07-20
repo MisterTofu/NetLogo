@@ -11,16 +11,34 @@
 
 #include "container.h"
 #include <vector>
+#include <cmath>
+#include <list>
 using namespace std;
 
 class Environment {
 	
 public:
 	Environment(int size);
-	
-	
-private:
 
+
+	void generateAdjacentContainers();
+	void print();
+	
+	void start();
+private:
+	int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
+	vector<Container> grid;
+	int cSize;
+	int gridCount;
+	float deathRate;
+	float replicationRate;
+	float movementRate;
+	float mutationRate;
+	float fitness;
+
+	bitset<SEQUENCE_LENGTH> randomBits();
+	vector<vector<int>> adjacentContainers; //adjacent containers is not constant for each container
+	vector<vector<int>> constraints;
 	
 };
 
