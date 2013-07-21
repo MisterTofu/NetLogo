@@ -18,7 +18,7 @@
 #include <boost/random.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
-
+#include <fstream>
 using namespace std;
 
 struct Virus {
@@ -32,8 +32,16 @@ class Environment {
 	
 public:
 	Environment(int size);
-
-
+	~Environment();
+	void setOutputFile(string);
+	void setDeathRate(float);
+	void setReplicationRate(float);
+	void setMovementRate(float);
+	void setMutationRate(float);
+	void setFitness(float);
+	void setDrugStrength(float);
+	void run();
+	double getEntropy();
 	void generateAdjacentContainers();
 	void print();
 	void printGenotypes();
@@ -48,8 +56,8 @@ private:
 	vector<vector<int>> adjacentContainers; //adjacent containers is not constant for each container
 	vector<vector<int>> constraints;
 	vector<Container> grid;
-	vector<int> drugContainers;
 	int cSize;
+	int generation;
 	int gridCount;
 	float deathRate;
 	float replicationRate;
@@ -61,16 +69,18 @@ private:
 	int currentPopulation;
 	float drugStrength;
 	int drugLength;
-	
-	
+	int drugContainersCount;
+	void initialize();
+	void writeToFile();
+	map<string, int> getTotalGenotypeCounts();
 	/* Functions */
 	
 	bitset<SEQUENCE_LENGTH> randomBits();
 	string randomBits_s();
 	int binomial(int trials, float probability);
-	
 	float random(float start, float end);
 	int randomInteger(int, int);
+	ofstream output;
 
 };
 

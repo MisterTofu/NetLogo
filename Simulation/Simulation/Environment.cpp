@@ -6,30 +6,41 @@
 //  Copyright (c) 2013 Travis. All rights reserved.
 //
 
+
+/*
+ 
+	NOTE: Target container is hardwired
+ 
+ 
+ */
+
 #include "Environment.h"
 
 // Create x by x containers
 Environment::Environment(int size)
 {
+	
+//	deathRate = 0.10;
+//	replicationRate = 0.50;
+//	movementRate = 0.50;
+//	mutationRate = 0.10;
+//	fitness = 0.10;				// Increase death rate by up to 10%
+//	drugStrength = 0.10;		// Drug containers increase, deathRate by drugStrength%  and Decrease for replication rate
+//	
+//	ofstream output;
+
 	cSize = size;
 	gridCount = size * size;
 	generateAdjacentContainers();
 	grid.assign(gridCount, Container());
 	srand ((unsigned)time(NULL));
-	
-	deathRate = 0.10;
-	replicationRate = 0.50;
-	movementRate = 0.50;
-	mutationRate = 0.10;
-	fitness = 0.10;				// Increase death rate by up to 10%
-	drugStrength = 0.10;
-
+	drugContainersCount = 0;
 	// drug sequence
 	bitset<DRUG_LENGTH> drug;
 	int randomNum = rand() % DRUG_LENGTH;
 	for (int i = 0; i < randomNum; i++)
 		drug.flip(rand() % DRUG_LENGTH);
-
+	generation = 0;
 
 	for (int x = 0; x < gridCount; x++)
 	{
@@ -38,7 +49,8 @@ Environment::Environment(int size)
 		for (int i = 0; i < temp.size(); i++) {
 			if ((drug ^
 				 bitset<DRUG_LENGTH> (string(temp[i]))).none()) {
-				drugContainers.push_back(0);
+				grid[x].setDrugContainer(true);
+				drugContainersCount++;
 				break;
 			}
 		}
@@ -48,6 +60,132 @@ Environment::Environment(int size)
 	grid[0].addGenotype(randomBits_s());
 	totalPopulation = 1;
 	currentPopulation = 1;
+}
+
+Environment::~Environment()
+{
+	output.close();
+}
+
+void Environment::setOutputFile(string fileName)
+{
+	output.open(fileName);
+	output << "\"Death Rate\",ReplicationRate,Movement,Mutation,Fitness,DrugStrength,DrugBitLength,DrugContainers,VirusSequenceLength" << endl
+	<< setprecision(10)
+	<< deathRate <<"," << replicationRate <<"," << movementRate <<"," << mutationRate <<"," << fitness <<"," << drugStrength <<"," << DRUG_LENGTH <<"," << drugContainersCount <<"," <<SEQUENCE_LENGTH << endl << endl;
+	output << "Generation,VirusCounts,TotalVirusCounts,Dead,Death%,Entropy,InfectedContainers" << endl;
+}
+
+void Environment::writeToFile()
+{
+	int infected = 0;
+	for (int i = 0; i < gridCount; i++) {
+		if (grid[i].getCount() > 0) {
+			infected++;
+		}
+	}
+	float dead = (float(totalPopulation - currentPopulation));
+	double death = double(dead / totalPopulation) * 100.0;
+	output << generation << ","
+			<< currentPopulation << ","
+			<< totalPopulation << ","
+			<< dead << ","
+			<< death << ","
+			<< getEntropy() << ","
+			<< infected << endl;
+//	output << "Writing this to a file.\n";
+}
+
+
+double Environment::getEntropy()
+{
+	map<string,int> total = getTotalGenotypeCounts();
+	double result = 0.0;
+	map<string, int>::iterator it;
+	for (it = total.begin(); it != total.end(); ++it) {
+		double px = (double)it->second / (double)currentPopulation;
+		result += (px * (double)log2(px));
+	}
+	return (result * -1);
+}
+
+
+map<string, int> Environment::getTotalGenotypeCounts()
+{
+	map<string, int> genotype;
+	map<string, int>::iterator it;
+	for (int i = 0; i < gridCount; i++) { // go thru each container
+		if (grid[i].getCount() > 0) {
+			// get all the genotypes and interate through them
+			vector<string> temp = grid[i].getAllGenotypes();
+			for(int j = 0; j < temp.size(); j++)
+			{
+				// check if element exists
+				it = genotype.find(temp[j]);
+				if (it != genotype.end()) //already have elemtn, update
+					genotype[temp[j]] = genotype[temp[j]] + 				grid[i].getCount(temp[j]);
+				else // new element, insert it
+					genotype.insert(pair<string, int>(temp[j],grid[i].getCount(temp[j])));
+			}
+		}
+	}
+	return genotype;
+}
+
+
+
+void Environment::run()
+{
+	//check count, check if target container infected
+	while (currentPopulation > 0 and !grid[63].infected()) {
+		start();
+		int sum = 0;
+		generation++;
+		for(int i =0; i < gridCount; i++)
+			sum += grid[i].infected();
+		cout << "Generation: " << generation << "\t\tInfected: " << sum<< endl;
+		writeToFile();
+	}
+	
+}
+
+
+void Environment::setDeathRate(float r)
+{
+	assert(r <= 1);
+	deathRate = r;
+}
+
+
+void Environment::setReplicationRate(float r)
+{
+	assert(r <= 1);
+	replicationRate = r;
+}
+
+void Environment::setMutationRate(float r)
+{
+	assert(r <= 1);
+	mutationRate = r;
+}
+
+void Environment::setMovementRate(float r)
+{
+	assert(r <= 1);
+	movementRate = r;
+}
+
+
+void Environment::setFitness(float r)
+{
+	assert(r <= 1);
+	fitness = r;
+}
+
+void Environment::setDrugStrength(float r)
+{
+	assert(r <= 1);
+	drugStrength = r;
 }
 
 vector<string> Environment::partitonBits(string seq)
@@ -62,29 +200,43 @@ vector<string> Environment::partitonBits(string seq)
 
 void Environment::start()
 {
+
 	// implement adding, drug probability
 	// Also optimization is needed 
 	vector<string> genotypes;
 	vector<Virus> moving;
-	float dr = 0.0, rr = 0.0, fit = 0.0;
+	float dr = 0.0, rr = 0.0, fit = 0.0, drugD, drugR;
 
 	for (int i = 0; i < gridCount; i++) {
-		for (int k = 0; k < drugContainers.size(); k++) {
-			if (drugContainers[k] == i) {
-//				drugD = deathRate * drugStrength;
-//				drugR = replicationRate * drugStrength;
-				break;
-			}
-		}
+		
 		if (grid[i].getCount() > 0) {
 			//iterate over each genotype
 			genotypes = grid[i].getAllGenotypes();
+			
+
+	 // Determining whether to add drug effect
+
+			if (grid[i].isDrugContainer()) {
+				drugD = deathRate * drugStrength;
+				drugR = replicationRate * drugStrength;
+			}
+			else{
+				drugD = 0.0;
+				drugR = 0.0;
+			}
+
+	
+			
 			for(int j = 0; j < genotypes.size(); j++)
 			{
+	 // Calculating fitness and drugs
 				int hd = grid[i].getHammingDistance(genotypes[j]);
 				fit = (float)hd / (float)SEQUENCE_LENGTH * fitness;
-				dr = deathRate * fit + deathRate * drugStrength;
-				rr = replicationRate * fit;
+				dr = (deathRate * fit) + drugD;
+				rr = (replicationRate * fit) + drugR;
+				
+				//	Get a binomial distribution to estimate, dead instead of individual probabilities
+				
 				int d = binomial(grid[i].getCount(genotypes[j]), (deathRate + dr));
 				for(int x = 0; x < d; x++)
 				{
@@ -93,6 +245,8 @@ void Environment::start()
 					currentPopulation--;
 				}
 				
+				
+	 // binomial for replication
 				int m = grid[i].getCount(genotypes[j]);
 				int r = binomial(grid[i].getCount(genotypes[j]), (replicationRate - rr));
 				m -= r;
@@ -104,8 +258,8 @@ void Environment::start()
 					currentPopulation++;
 				}
 			
-				m = binomial(m, (movementRate / 100));
-					
+			 // remaining binomal distrubiton for movement 
+				m = binomial(m, (movementRate));
 				for(int x = 0; x < m; x++)
 				{
 					grid[i].removeGenotype(genotypes[j]);
@@ -239,7 +393,7 @@ void Environment::print()
 		<< "Dead: " << dead << endl
 		<< "Death Rate: " << setprecision(8) << death << endl
 		<< "Infected Containers: " << infected;
-		cout << "\nDrug Containers: " << drugContainers.size() << endl;
+		cout << "\nDrug Containers: " << drugContainersCount << endl;
 	}
 }
 

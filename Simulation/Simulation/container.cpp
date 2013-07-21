@@ -15,14 +15,41 @@ Container::Container(string seq)
 	containerSequence = seq;
 	srand ((unsigned)time(NULL));
 	count = 0;
+	totalcount = 0;
+	drugContainer = false;
 }
 
 Container::Container()
 {
 	srand ((unsigned)time(NULL));
 	count = 0;
+	totalcount = 0;
+	drugContainer = false;
 }
 
+// Shannon Entropy, Sum of probability * log probability
+double Container::getEntropy()
+{
+	double result = 0.0;
+	int total = getCount();
+	if (total > 0)
+	{
+		double px;
+		map<string, int>::iterator it;
+		for (it = genotype.begin(); it != genotype.end(); ++it)
+		{
+			px = (double)it->second / (double)total;
+			result += (px * (double)log2(px));
+		}
+	}
+	return (result * -1);
+}
+
+
+bool Container::infected()
+{
+	return count > 0;
+}
 
 void Container::addGenotype(string g)
 {
@@ -35,7 +62,18 @@ void Container::addGenotype(string g)
 		genotype.insert(pair<string, int>(g, 1));
 		hamming.insert(pair<string,int>(g, hammingDistance(toBits(containerSequence), toBits(g))));
 	}
+	totalcount++;
 	count++;
+}
+
+bool Container::isDrugContainer()
+{
+	return drugContainer;
+}
+
+void Container::setDrugContainer(bool drug)
+{
+	drugContainer = drug;
 }
 
 

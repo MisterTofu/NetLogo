@@ -15,6 +15,7 @@
 #include <string.h>
 #include <iomanip>
 #include <map>
+#include <cmath>
 #include <vector>
 using namespace std;
 
@@ -28,23 +29,33 @@ public:
 	Container(string seq);
 	Container();
 	void setContainerSequence(string g);
+	
+	
+	// Gets total count of viruses in container
 	int getCount();
+	
+	// Gets count of given genotype
 	int getCount(string g);
+	
+	// Gets hamming distance of given genotype
 	int getHammingDistance(string g);
+	
 	void addGenotype(string  g);
 	void removeGenotype(string g);
+	
+	// Returns a vector of all genotypes
 	vector<string> getAllGenotypes();
+	double getEntropy();
+	bool infected();
 	bitset<SEQUENCE_LENGTH> toBits(string bits);
 	string getContainerSequence();
-	
 	bitset<SEQUENCE_LENGTH> getContainerSequenceBits();
 	bitset<SEQUENCE_LENGTH>  mutateSequence(bitset<SEQUENCE_LENGTH>  parent, float mutation);
 	void print();
 	void death(float death, float, float, float);
 	void replicate(float replication, float mutation);
-	
-	
-
+	bool isDrugContainer();
+	void setDrugContainer(bool drug);
 	
 private:
 	map<string, int> genotype;
@@ -52,7 +63,8 @@ private:
 	string containerSequence;
 	int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
 	int count;
-	
+	int totalcount;
+	bool drugContainer;
 	
 	bitset<SEQUENCE_LENGTH> mutate(float prob);
 
