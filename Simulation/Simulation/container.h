@@ -37,6 +37,7 @@ public:
 	// Gets count of given genotype
 	int getCount(string g);
 	
+	int getTotalCount();
 	// Gets hamming distance of given genotype
 	int getHammingDistance(string g);
 	
@@ -56,6 +57,7 @@ public:
 	void replicate(float replication, float mutation);
 	bool isDrugContainer();
 	void setDrugContainer(bool drug);
+	string infectedOutput();
 	
 private:
 	map<string, int> genotype;

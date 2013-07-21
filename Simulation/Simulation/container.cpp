@@ -62,8 +62,14 @@ void Container::addGenotype(string g)
 		genotype.insert(pair<string, int>(g, 1));
 		hamming.insert(pair<string,int>(g, hammingDistance(toBits(containerSequence), toBits(g))));
 	}
-	totalcount++;
 	count++;
+}
+
+string Container::infectedOutput()
+{
+	if (infected())
+		return "Y";
+	return "N";
 }
 
 bool Container::isDrugContainer()
@@ -76,6 +82,10 @@ void Container::setDrugContainer(bool drug)
 	drugContainer = drug;
 }
 
+int Container::getTotalCount()
+{
+	return totalcount;
+}
 
 // Doesn't remove hamming distance, not exactly important unless memory is needed
 void Container::removeGenotype(string g)

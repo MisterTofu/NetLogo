@@ -9,8 +9,7 @@
 
 /*
  
-	NOTE: Target container is hardwired
- 
+	NOTE: Target and start containers are hardwired
  
  */
 
@@ -51,6 +50,7 @@ Environment::Environment(int size)
 				 bitset<DRUG_LENGTH> (string(temp[i]))).none()) {
 				grid[x].setDrugContainer(true);
 				drugContainersCount++;
+				drugContainersList += to_string(x) + " ";
 				break;
 			}
 		}
@@ -64,26 +64,43 @@ Environment::Environment(int size)
 
 Environment::~Environment()
 {
+	if (append)
+		output << endl << endl << endl << endl;
 	output.close();
 }
 
-void Environment::setOutputFile(string fileName)
+void Environment::setOutputFile(string fileName, bool appendFile)
 {
-	output.open(fileName);
-	output << "\"Death Rate\",ReplicationRate,Movement,Mutation,Fitness,DrugStrength,DrugBitLength,DrugContainers,VirusSequenceLength" << endl
+	append = appendFile;
+	if (appendFile)
+		output.open(fileName, ios_base::app);
+	else
+		output.open(fileName);
+	
+	output << "Death Rate,Replication Rate,Movement,Mutation,Fitness,Drug Strength,Drug Bit Length,Drug Containers,Drug Container Numbers,Virus Sequence Length" << endl
 	<< setprecision(10)
-	<< deathRate <<"," << replicationRate <<"," << movementRate <<"," << mutationRate <<"," << fitness <<"," << drugStrength <<"," << DRUG_LENGTH <<"," << drugContainersCount <<"," <<SEQUENCE_LENGTH << endl << endl;
-	output << "Generation,VirusCounts,TotalVirusCounts,Dead,Death%,Entropy,InfectedContainers" << endl;
+	<< deathRate <<"," << replicationRate <<"," << movementRate <<"," << mutationRate <<"," << fitness <<"," << drugStrength <<"," << DRUG_LENGTH <<"," << drugContainersCount <<"," << drugContainersList <<"," <<SEQUENCE_LENGTH << endl << endl;
+	
+	string cont;
+	for (int i = 0; i < gridCount; i++)
+		cont += ",,Container: " + to_string(i) + ",Virus Counts,Entropy,Drug Container";
+	
+	output << "Generation,Virus Counts,Total Virus Counts,Dead,Death%,Entropy,InfectedContainers" << cont;
 }
 
 void Environment::writeToFile()
 {
 	int infected = 0;
 	for (int i = 0; i < gridCount; i++) {
-		if (grid[i].getCount() > 0) {
+		if (grid[i].infected())
 			infected++;
-		}
 	}
+	
+	string cont;
+	for (int i = 0; i < gridCount; i++)
+		cont += ",," + to_string(i) + "," + to_string(grid[i].getCount()) + "," + to_string(grid[i].getEntropy()) + "," + grid[i].infectedOutput();
+//		Virus Counts,Dead,Entropy,Drug Container";
+	
 	float dead = (float(totalPopulation - currentPopulation));
 	double death = double(dead / totalPopulation) * 100.0;
 	output << generation << ","
@@ -92,7 +109,9 @@ void Environment::writeToFile()
 			<< dead << ","
 			<< death << ","
 			<< getEntropy() << ","
-			<< infected << endl;
+			<< infected
+			<< cont
+			<< endl;
 //	output << "Writing this to a file.\n";
 }
 
@@ -133,18 +152,26 @@ map<string, int> Environment::getTotalGenotypeCounts()
 }
 
 
+double Environment::elapsed(clock_t begin)
+{
+	clock_t end = clock();
+	return double(end - begin) / CLOCKS_PER_SEC;
+}
+
 
 void Environment::run()
 {
 	//check count, check if target container infected
 	while (currentPopulation > 0 and !grid[63].infected()) {
 		start();
+		clock_t begin = clock();
 		int sum = 0;
-		generation++;
 		for(int i =0; i < gridCount; i++)
 			sum += grid[i].infected();
-		cout << "Generation: " << generation << "\t\tInfected: " << sum<< endl;
+
 		writeToFile();
+		generation++;
+		cout << "Generation: " << generation << "\t\tInfected: " << sum <<"\t\tTime: " << elapsed(begin) << endl;
 	}
 	
 }

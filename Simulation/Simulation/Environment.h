@@ -26,14 +26,14 @@ struct Virus {
 	int container;
 };
 
-const int DRUG_LENGTH = 5;
+const int DRUG_LENGTH = 3;
 
 class Environment {
 	
 public:
 	Environment(int size);
 	~Environment();
-	void setOutputFile(string);
+	void setOutputFile(string, bool);
 	void setDeathRate(float);
 	void setReplicationRate(float);
 	void setMovementRate(float);
@@ -52,7 +52,6 @@ public:
 private:
 	
 	/* */
-	
 	vector<vector<int>> adjacentContainers; //adjacent containers is not constant for each container
 	vector<vector<int>> constraints;
 	vector<Container> grid;
@@ -73,7 +72,9 @@ private:
 	void initialize();
 	void writeToFile();
 	map<string, int> getTotalGenotypeCounts();
+
 	/* Functions */
+	double elapsed(clock_t begin);
 	
 	bitset<SEQUENCE_LENGTH> randomBits();
 	string randomBits_s();
@@ -81,7 +82,8 @@ private:
 	float random(float start, float end);
 	int randomInteger(int, int);
 	ofstream output;
-
+	string drugContainersList;
+	bool append;
 };
 
 
