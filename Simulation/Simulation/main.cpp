@@ -56,6 +56,9 @@ int main(int argc, const char * argv[])
 {
 	float deathRate, replicationRate, mutationRate, movementRate, fitness, drugStrength;
 	string file;
+	
+		cout << argv[0] << endl;
+	
 	if (argc == 8) {
 		deathRate = atof(argv[1]);
 		replicationRate = atof(argv[2]);
@@ -82,8 +85,51 @@ int main(int argc, const char * argv[])
 	}
 	else
 	{
-		cout << "Found " << (argc - 1) << " parameters 7 is required\n";
-		cout << "Usage: Death Rate, Replication Rate, Movement Rate, Mutation Rate, Fitness, Drug Strength, Outputfile\n\n";
+		
+		if (argc > 1) {
+			file = argv[1];
+		
+		int sum = 0;
+		clock_t begin = clock();
+		
+
+		deathRate = 0.1;
+		replicationRate = 0.50;
+		movementRate = 0.5;
+
+		
+		
+		
+		for (drugStrength = 0.0; drugStrength < 0.21; drugStrength+=0.05)
+		{
+			for(mutationRate = 0.01; mutationRate <= 0.1; mutationRate+=0.04)
+			{
+				if (mutationRate > 0.06)
+					mutationRate = 0.10;
+				for(fitness = 0.01; fitness <= 0.10; fitness+=0.04)
+				{
+					sum++;
+					cout << "Starting Iteration: " << sum << endl << endl;
+					if(fitness > 0.06)
+						fitness = 0.10;
+					
+					Environment env(8);
+					env.setDeathRate(deathRate);
+					env.setReplicationRate(replicationRate);
+					env.setMovementRate(movementRate);
+					env.setOutputFile(file, true);
+					env.setMutationRate(mutationRate);
+					env.setFitness(fitness);
+					env.setDrugStrength(drugStrength);
+					env.run();
+					
+					cout << "\n\n\nIteration: " << sum << "\t\t" << "Total Time Elapsed: "  << elapsed(begin) << endl;
+				}
+			}
+		}
+		
+			cout << "\n\nTotal Elapsed: " << elapsed(begin) << endl;
+		}
 	}
     return 0;
 }

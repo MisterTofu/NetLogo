@@ -72,7 +72,7 @@ private:
 	void initialize();
 	void writeToFile();
 	map<string, int> getTotalGenotypeCounts();
-
+	clock_t init; 
 	/* Functions */
 	double elapsed(clock_t begin);
 	

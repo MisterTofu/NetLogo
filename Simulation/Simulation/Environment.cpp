@@ -27,7 +27,7 @@ Environment::Environment(int size)
 //	drugStrength = 0.10;		// Drug containers increase, deathRate by drugStrength%  and Decrease for replication rate
 //	
 //	ofstream output;
-
+	init = clock();
 	cSize = size;
 	gridCount = size * size;
 	generateAdjacentContainers();
@@ -171,7 +171,7 @@ void Environment::run()
 
 		writeToFile();
 		generation++;
-		cout << "Generation: " << generation << "\t\tInfected: " << sum <<"\t\tTime: " << elapsed(begin) << endl;
+		cout << "\tGeneration: " << generation << "\t\tInfected: " << sum <<"\t\tTime: " << elapsed(begin)<<"\t\tInit Time: " << elapsed(init) << endl;
 	}
 	
 }
