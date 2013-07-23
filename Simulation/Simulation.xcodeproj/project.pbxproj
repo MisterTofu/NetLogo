@@ -167,9 +167,9 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = /usr/local/Cellar/boost/1.53.0/include;
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/boost/1.53.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
+				SDKROOT = macosx10.8;
 			};
 			name = Debug;
 		};
@@ -198,8 +198,8 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = /usr/local/Cellar/boost/1.53.0/include;
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/boost/1.53.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.8;
-				SDKROOT = macosx;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx10.8;
 			};
 			name = Release;
 		};

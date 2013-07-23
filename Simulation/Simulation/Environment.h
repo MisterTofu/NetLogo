@@ -26,7 +26,7 @@ struct Virus {
 	int container;
 };
 
-const int DRUG_LENGTH = 3;
+const int DRUG_LENGTH = 10;
 
 class Environment {
 	
@@ -41,6 +41,7 @@ public:
 	void setFitness(float);
 	void setDrugStrength(float);
 	void run();
+	void run(int gen, int max);
 	double getEntropy();
 	void generateAdjacentContainers();
 	void print();
@@ -72,10 +73,15 @@ private:
 	void initialize();
 	void writeToFile();
 	map<string, int> getTotalGenotypeCounts();
-	clock_t init; 
-	/* Functions */
-	double elapsed(clock_t begin);
+	clock_t init;
+	map<string, float> drugFitness;
+	map<float, string> bestFitness;
+	float getDrugFitness(string, int);
 	
+	/* Functions */
+	float drugDistance(string g);
+	double elapsed(clock_t begin);
+	void addDrugFitness(string g, float);
 	bitset<SEQUENCE_LENGTH> randomBits();
 	string randomBits_s();
 	int binomial(int trials, float probability);
@@ -84,6 +90,9 @@ private:
 	ofstream output;
 	string drugContainersList;
 	bool append;
+	bitset<DRUG_LENGTH> drug;
+	int maxGenerations;
+	int maxViruses;
 };
 
 

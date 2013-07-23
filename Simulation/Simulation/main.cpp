@@ -57,8 +57,7 @@ int main(int argc, const char * argv[])
 	float deathRate, replicationRate, mutationRate, movementRate, fitness, drugStrength;
 	string file;
 	
-		cout << argv[0] << endl;
-	
+	int start, max;
 	if (argc == 8) {
 		deathRate = atof(argv[1]);
 		replicationRate = atof(argv[2]);
@@ -83,53 +82,62 @@ int main(int argc, const char * argv[])
 		
 		cout << "\n\nTotal Elapsed: " << elapsed(begin) <<endl;
 	}
+	else if (argc == 10)
+	{
+	
+		cout << "starting else\n\n" ;
+		clock_t begin = clock();
+
+		deathRate = atof(argv[1]);
+		replicationRate = atof(argv[2]);
+		movementRate =atof(argv[3]);
+		mutationRate = atof(argv[4]);
+		fitness = atof(argv[5]);			// Increase death rate by up to 10%
+		drugStrength = atof(argv[6]);		// Drug containers increase, deathRate by drugStrength%  and Decrease for replication rate
+		file = argv[7];
+		start = atoi(argv[8]);
+		max = atoi(argv[9]);
+			
+		Environment env(8);
+		env.setDeathRate(deathRate);
+		env.setReplicationRate(replicationRate);
+		env.setMovementRate(movementRate);
+		env.setMutationRate(mutationRate);
+		env.setFitness(fitness);
+		env.setDrugStrength(drugStrength);
+		env.setOutputFile(file, true);
+		env.run(start, max);
+		
+		
+		
+		cout << "\n\nTotal Elapsed: " << elapsed(begin) << endl;
+		
+	}
 	else
 	{
-		
-		if (argc > 1) {
-			file = argv[1];
-		
-		int sum = 0;
+//		cout << "ERROR - check arguments" << endl;
+		deathRate = 0.10;
+		replicationRate = 0.50;
+		movementRate = 0.50;
+		mutationRate = 0.10;
+		fitness = 0.10; // Increase death rate by up to 10%
+		drugStrength = 1.5;		// Drug containers increase, deathRate by drugStrength%  and Decrease for replication rate
+		file = "output.csv";
 		clock_t begin = clock();
 		
-
-		deathRate = 0.1;
-		replicationRate = 0.50;
-		movementRate = 0.5;
-
+		Environment env(8);
 		
+		env.setDeathRate(deathRate);
+		env.setReplicationRate(replicationRate);
+		env.setMovementRate(movementRate);
+		env.setMutationRate(mutationRate);
+		env.setFitness(fitness);
+		env.setDrugStrength(drugStrength);
+		env.setOutputFile(file, false);
 		
+		env.run();
+		cout << "\n\nTotal Elapsed: " << elapsed(begin) << endl;
 		
-		for (drugStrength = 0.0; drugStrength < 0.21; drugStrength+=0.05)
-		{
-			for(mutationRate = 0.01; mutationRate <= 0.1; mutationRate+=0.04)
-			{
-				if (mutationRate > 0.06)
-					mutationRate = 0.10;
-				for(fitness = 0.01; fitness <= 0.10; fitness+=0.04)
-				{
-					sum++;
-					cout << "Starting Iteration: " << sum << endl << endl;
-					if(fitness > 0.06)
-						fitness = 0.10;
-					
-					Environment env(8);
-					env.setDeathRate(deathRate);
-					env.setReplicationRate(replicationRate);
-					env.setMovementRate(movementRate);
-					env.setOutputFile(file, true);
-					env.setMutationRate(mutationRate);
-					env.setFitness(fitness);
-					env.setDrugStrength(drugStrength);
-					env.run();
-					
-					cout << "\n\n\nIteration: " << sum << "\t\t" << "Total Time Elapsed: "  << elapsed(begin) << endl;
-				}
-			}
-		}
-		
-			cout << "\n\nTotal Elapsed: " << elapsed(begin) << endl;
-		}
 	}
     return 0;
 }

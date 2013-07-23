@@ -77,10 +77,13 @@ bool Container::isDrugContainer()
 	return drugContainer;
 }
 
-void Container::setDrugContainer(bool drug)
+void Container::setDrugContainer(bool drug, string drugSequence)
 {
 	drugContainer = drug;
+	DrugSequence = drugSequence;
 }
+
+
 
 int Container::getTotalCount()
 {
@@ -178,7 +181,7 @@ void Container::print()
 	{
 		cout << "Sequence: "
 			<<setw(width) << it->first
-			<< setw(width) << toBits(it->first).to_ullong()
+			<< setw(width) << toBits(it->first).to_ulong()
 			<< setw(width) << it->second << endl;
 	}
 }
@@ -186,12 +189,6 @@ void Container::print()
 
 int Container::hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2)
 {
-	int distance = 0;
 	assert(seq1.size() == seq2.size());
-	for (int i = 0; i < seq1.size(); i++) {
-		if ((seq1[i] ^ seq2[i]) == 1) { //different
-			distance++;
-		}
-	}
-	return distance;
+	return (seq1 ^ seq2).count();
 }

@@ -56,10 +56,11 @@ public:
 	void death(float death, float, float, float);
 	void replicate(float replication, float mutation);
 	bool isDrugContainer();
-	void setDrugContainer(bool drug);
+	void setDrugContainer(bool drug, string drugSequence);
 	string infectedOutput();
 	
 private:
+	vector<string> partitionBits();
 	map<string, int> genotype;
 	map<string, int> hamming;
 	string containerSequence;
@@ -67,7 +68,7 @@ private:
 	int count;
 	int totalcount;
 	bool drugContainer;
-	
+	string DrugSequence;
 	bitset<SEQUENCE_LENGTH> mutate(float prob);
 
 };
