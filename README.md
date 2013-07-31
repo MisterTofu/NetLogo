@@ -29,7 +29,3 @@ Reimplementation of VirusContainer2 was done in C++, see simulation
 
 
 
-
-#License
-TBD
-
