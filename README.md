@@ -1,8 +1,17 @@
-#Netlogo
+#Netlogo(http://ccl.northwestern.edu/netlogo/)
 Agent based modeling repository
+
+Reimplementation of VirusContainer2 was done in C++, see simulation
 
 
 ##Models 
+* Simulation (C++)
+	* Virus Container 2, headless, pretty much the same as Virus Container 2 just implemented in C++
+	* Due to time constraints, it was written very quick and dirty
+* Virus Container 2
+	* Optimized and segregated in to container and virus genotypes files
+	* High use of dict and random generators created a lot of problems
+	* Works fine on small scale
 * Virus Container
 	* Parts of Virus Spread/Cell and expanded for more practical problems
 * Find Food Source

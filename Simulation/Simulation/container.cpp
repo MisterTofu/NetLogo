@@ -5,7 +5,6 @@
 //  Created by Travis on 7/19/13.
 //  Copyright (c) 2013 Travis. All rights reserved.
 //
-//	 bitset<10> third (string("01011"))
 
 #include "container.h"
 

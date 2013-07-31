@@ -26,34 +26,64 @@ struct Virus {
 	int container;
 };
 
+
+
 const int DRUG_LENGTH = 10;
+
+
+
+
 
 class Environment {
 	
 public:
+	// Constructor: Size of grid, x by x
 	Environment(int size);
 	~Environment();
-	void setOutputFile(string, bool);
+	
+	// Designate an output file to write output to
+	// Set appendFile as true to append to the output file specified instead of overwriting it
+	void setOutputFile(string, bool appendFile);
+	
+	// Set death, rep, movement, mutation, fitness, drug
+	// rate 0.0-1.0
 	void setDeathRate(float);
 	void setReplicationRate(float);
 	void setMovementRate(float);
 	void setMutationRate(float);
 	void setFitness(float);
 	void setDrugStrength(float);
-	void run();
-	void run(int gen, int max);
-	double getEntropy();
-	void generateAdjacentContainers();
-	void print();
-	void printGenotypes();
-	void start();
-		int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
 	
+	// Start simulation
+	void run();
+	
+	// Start simulation after x generations
+	// int max = run to max generations after
+	// maxVirus and maxGeneration still apply
+	void run(int gen, int max);
+	
+	// Get entrophy of all containers
+	double getEntropy();
+	
+	// Debug
+	void print();
+	
+	// Debug Genotypes
+	void printGenotypes();
+	
+	void start();
+	
+	// Hamming distance
+	int hammingDistance(bitset<SEQUENCE_LENGTH> seq1, bitset<SEQUENCE_LENGTH> seq2);
+	// Partition bits by SEQUENCE_LENGTH
 	vector<string> partitonBits(string seq);
 private:
 	
-	/* */
-	vector<vector<int>> adjacentContainers; //adjacent containers is not constant for each container
+	// Populate adjacent containers variable
+	void generateAdjacentContainers();
+	// adjacentContainer: x ===> [x][y]
+	// y is the adjacent containers for all of x
+	vector<vector<int>> adjacentContainers;
 	vector<vector<int>> constraints;
 	vector<Container> grid;
 	int cSize;

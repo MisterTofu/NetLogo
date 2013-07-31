@@ -16,24 +16,20 @@
 // Create x by x containers
 Environment::Environment(int size)
 {
-	
-//	deathRate = 0.10;
-//	replicationRate = 0.50;
-//	movementRate = 0.50;
-//	mutationRate = 0.10;
-//	fitness = 0.10;				// Increase death rate by up to 10%
-//	drugStrength = 0.10;		// Drug containers increase, deathRate by drugStrength%  and Decrease for replication rate
-//	
-//	ofstream output;
 	init = clock();
 	cSize = size;
 	gridCount = size * size;
 	generateAdjacentContainers();
+	
+	// Assign each grid a Container obj
 	grid.assign(gridCount, Container());
+	
+	// Seed random generator
 	srand ((unsigned)time(NULL));
 	drugContainersCount = 0;
+	
+	
 	// drug sequence
-
 	int randomNum = rand() % DRUG_LENGTH;
 	for (int i = 0; i < randomNum; i++)
 		drug.flip(rand() % DRUG_LENGTH);
@@ -59,23 +55,12 @@ Environment::Environment(int size)
 	grid[0].addGenotype(randomBits_s());
 	totalPopulation = 1;
 	currentPopulation = 1;
+	
+	// Max variables to prevent over growth
 	maxGenerations = 500;
 	maxViruses = 20000000;
-//	for (int x = 0; x < gridCount; x++)
-//	{
-//		if (grid[x].isDrugContainer()) {
-//			vector<string> temp = partitonBits(grid[x].getContainerSequence());
-//			for (int i = 0; i < temp.size(); i++) {
-//				if ((drug ^ bitset<DRUG_LENGTH> (string(temp[i]))).none()) {
-//					grid[x].setDrugContainer(true, drug.to_string());
-//					drugContainersCount++;
-//					drugContainersList += to_string(x) + " ";
-//					break;
-//				}
-//			}
-//		}
-//	}
 }
+
 
 Environment::~Environment()
 {
@@ -83,8 +68,6 @@ Environment::~Environment()
 		output << endl << endl << endl << endl;
 	output.close();
 }
-
-
 
 
 void Environment::setOutputFile(string fileName, bool appendFile)
@@ -99,12 +82,6 @@ void Environment::setOutputFile(string fileName, bool appendFile)
 	<< setprecision(10)
 	<< deathRate <<"," << replicationRate <<"," << movementRate <<"," << mutationRate <<"," << fitness <<"," << drugStrength <<"," << DRUG_LENGTH <<"," << drugContainersCount <<"," << drugContainersList <<"," <<SEQUENCE_LENGTH << endl << endl;
 	
-//	string cont;
-//	for (int i = 0; i < gridCount; i++)
-//		cont += ",,Container: " + to_string(i) + ",Virus Counts,Entropy,Drug Container";
-//		for (int i = 0; i < 5; i++)
-//			cont += ",Best Genotype: " + to_string(i);
-	
 	output << "Generation,Virus Counts,Total Virus Counts,Dead,Death%,Entropy,InfectedContainers" << endl;
 }
 
@@ -116,21 +93,6 @@ void Environment::writeToFile()
 			infected++;
 	}
 	
-//	string cont;
-//	map<float,string>::iterator it;
-//	int i = 0;
-//	for(it = bestFitness.begin(); it != bestFitness.end(); ++it)
-//	{
-//		if (i > 4)
-//			break;
-//		cont += ",\"" + it->second + "\"";
-////		cout << it->first <<"\t\t" << it->second << endl;
-//		i++;
-//	}
-//	bestFitness.clear();
-//	for (int i = 0; i < gridCount; i++)
-//		cont += ",," + to_string(i) + "," + to_string(grid[i].getCount()) + "," + to_string(grid[i].getEntropy()) + "," + grid[i].infectedOutput();
-//		Virus Counts,Dead,Entropy,Drug Container";
 	float dead = (float(totalPopulation - currentPopulation));
 	double death = double(dead / totalPopulation) * 100.0;
 	output << generation+1 << ","
@@ -141,7 +103,6 @@ void Environment::writeToFile()
 			<< getEntropy() << ","
 			<< infected
 			<< endl;
-//	output << "Writing this to a file.\n";
 }
 
 void Environment::start()
@@ -289,7 +250,7 @@ void Environment::run(int gen, int max)
 	output << "=============================================" << endl << "Starting Drug\n" <<"=============================================" << endl;
 	cout << "Max: " << max << "\t\tAT: " <<gen << endl;
 
-	for(int x = gen; x < max and generation < maxGenerations and currentPopulation < maxViruses; x++)
+	for(int x = gen; x < max and currentPopulation < maxViruses; x++)
 	{
 		start();
 		clock_t begin = clock();
@@ -317,6 +278,7 @@ double Environment::getEntropy()
 	}
 	return (result * -1);
 }
+
 
 map<string, int> Environment::getTotalGenotypeCounts()
 {
