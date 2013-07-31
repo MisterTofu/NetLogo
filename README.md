@@ -1,4 +1,4 @@
-#Netlogo(http://ccl.northwestern.edu/netlogo/)
+#[Netlogo](http://ccl.northwestern.edu/netlogo/)
 Agent based modeling repository
 
 Reimplementation of VirusContainer2 was done in C++, see simulation
