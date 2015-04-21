@@ -29,3 +29,4 @@ Reimplementation of VirusContainer2 was done in C++, see simulation
 
 
 
+[![Analytics](https://ga-beacon.appspot.com/UA-62086129-1/NetLogo/readme?pixel)](https://github.com/igrigorik/ga-beacon)
